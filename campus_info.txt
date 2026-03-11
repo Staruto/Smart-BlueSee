@@ -1,0 +1,79 @@
+[Campus General Info]
+University Name: University of Nottingham Ningbo China (UNNC)
+Founded: 2004. Location: 199 Taikang East Road, Yinzhou District, Ningbo, Zhejiang, China.
+The Hub (Student Service Centre): Portland Building 120. Hours: Mon-Fri 08:30-17:00. Tel: +86 (0)574 8818 0000 (Switchboard).
+Library (Information Services): Term Time: 08:00 - 22:30 (24h Study Room available). Vacation: 09:00 - 17:00. Location: Main Library Building. Self-service printing and scanning available.
+IT Service Desk: Portland Building 305. Tel: +86 (0)574 8818 0009. Email: ITServiceDesk@nottingham.edu.cn. Hours: Mon-Fri 08:30-17:00.
+Campus Clinic: Room 109, Building 23. Tel: +86 (0)574 8818 0120. Hours: Mon-Fri 08:30-17:00. (Emergency: 8818 0000).
+Emergency Hotline (24h): +86 (0)574 8818 0000. For fire/medical/security emergencies on campus.
+Campus Security: 24h patrol. Tel: 8818 0110.
+
+[Academic Calendar (Spring 2026)]
+Spring Semester Start: Late Feb (Based on Lunar New Year).
+Teaching Weeks: Approx. Week 1 (late Feb) - Week 12 (mid May).
+Assessment Period 1: Jan 5 - Jan 17 (Winter Exams).
+Spring Break: Early April (Qingming Festival, ~3 days).
+Labor Day Holiday: May 1 - May 5.
+Assessment Period 2 (Summer Exams): May 18 - Jun 6.
+Summer Vacation Start: Mid-June.
+Resit Period: Typically August.
+*Note*: Check official calendar on Moodle for exact dates. Each faculty may have slight variations.
+
+[Common Procedures]
+1. Student ID Card: Lost cards must be reported to The Hub (Portland 120). Replacement fee: 30 RMB. Processing time: 3-5 working days.
+2. Course Enrollment: Use 'NottinghamHub' (hub.nottingham.ac.uk) during the module enrollment window (typically 1-2 weeks before semester starts). Contact your School Office for module issues.
+3. Wi-Fi Access:
+   - SSID: eduroam
+   - Username: username@nottingham.edu.cn (e.g., scxyy1@nottingham.edu.cn)
+   - Password: Your university account password.
+   - Troubleshooting: Clear saved eduroam profiles and reconnect. Contact IT Desk if issues persist.
+4. Moodle: Main learning platform (moodle.nottingham.ac.uk). Login with university account. All course materials, assignments, and announcements are posted here.
+5. Blue Castle: For checking exam results (bluecastle.nottingham.ac.uk). Results typically released 2-3 weeks after exam period.
+6. Transcript Request: Apply through The Hub. Official transcripts: 20 RMB/copy. Processing: 5 working days.
+7. Leave of Absence: Contact your Personal Tutor first, then apply through The Hub with supporting documentation.
+
+[Campus Life Guide]
+Canteens:
+  - Canteen 1 (Teaching Area): Chinese food, noodles, rice dishes. Hours: 07:00-20:00.
+  - Canteen 2 (Dorm Area): Halal options, diverse cuisines, bakery. Hours: 07:00-21:00.
+  - Canteen 3 (North Area): Chinese food, hot pot. Hours: 11:00-13:00, 17:00-19:00.
+  - Starbucks: In the Library Building & Portland Building. Hours: 08:00-21:00.
+  - Various snack shops and convenience stores around the dormitory area.
+Shuttle Bus: Campus Loop (free, every 15 min during term). Weekend Downtown Bus to Tianyi Square. Schedule available at The Hub reception.
+Printing: Printers in Library, Computer Labs (Portland Building), and some faculty buildings. Use ID card to release print jobs. Cost: B&W 0.1 RMB/page, Color 0.5 RMB/page.
+Sports Facilities: Gymnasium, swimming pool, tennis courts, basketball courts, football pitch. Gym membership: ~50 RMB/semester for students.
+Student Clubs: 100+ registered clubs and societies. Join during Freshers' Fair (start of each semester) or contact the Student Union.
+
+[Mental Health & Wellbeing]
+Campus Counseling Center: Portland Building, Room 118. Tel: 8818 0168.
+- Free and confidential counseling for all students.
+- Appointments: Book via email counseling@nottingham.edu.cn or walk-in during office hours.
+- Hours: Mon-Fri 09:00-17:00.
+- Crisis support available via 24h Emergency Hotline: 8818 0000.
+National Mental Health Hotline (China): 400-161-9995 (24h, free).
+Peer Support: UNNC Student Wellbeing Ambassadors — contact via Student Union.
+If you or someone you know is in crisis, please call 8818 0000 immediately.
+
+[International Students]
+Visa & Residence Permit: International Office, Portland Building 215. Renew residence permits 30 days before expiry.
+International Office Tel: 8818 0188. Email: internationaloffice@nottingham.edu.cn
+Airport Pickup: Available at start of semester. Register through the International Office website.
+Bank Account: Can be opened at on-campus Bank of China branch with passport and admission letter.
+SIM Card: Available at campus convenience store or China Mobile/Unicom shops in Yinzhou.
+
+[Faculty & Staff Info]
+Three Faculties:
+  - Faculty of Science and Engineering (FoSE)
+  - Faculty of Humanities and Social Sciences (FoHSS)  
+  - Faculty of Business (NBS - Nottingham University Business School)
+Staff Directory: Available on the UNNC website (nottingham.edu.cn/en/about/people.aspx).
+Personal Tutor System: Each student is assigned a Personal Tutor for academic and pastoral support. Contact your School Office if you need to change tutor.
+
+[AI Assistant Guidelines]
+- You are 'Bluesee', the UNNC Campus Assistant.
+- If asked about specific room availability or real-time bus locations, explain that you don't have real-time access yet and suggest checking Moodle or The Hub.
+- Prioritize official channels (The Hub, IT Desk, School Offices) for administrative issues.
+- Be helpful to both students (UG/PG) and staff.
+- For emergencies, always provide the 24h Hotline: 8818 0000.
+- For academic appeals or complaints, direct to The Hub or the relevant School Office.
+- For questions outside your knowledge, suggest checking the UNNC website (nottingham.edu.cn) or contacting The Hub.

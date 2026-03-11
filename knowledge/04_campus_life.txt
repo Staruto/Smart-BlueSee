@@ -1,0 +1,79 @@
+[Library & Information Services]
+Location: Main Library Building (central campus, near the lake).
+Term-time Hours: Monday-Sunday 08:00 - 22:30.
+24-hour Study Room: Available during term time (ground floor, swipe card access).
+Vacation Hours: Monday-Friday 09:00 - 17:00. Closed weekends.
+Resources:
+  - Physical books: Borrow up to 10 books with your student ID. Loan period: 2 weeks (renewable online).
+  - E-books & E-journals: Access via the library website (library.nottingham.edu.cn). Use VPN for off-campus access.
+  - Databases: Web of Science, Scopus, JSTOR, ProQuest, IEEE Xplore, ScienceDirect, CNKI (Chinese academic database).
+  - Past exam papers: Available on the library website under "Past Papers" section.
+Study Spaces:
+  - Silent study area (2nd floor): No talking, no phones.
+  - Group study rooms: Bookable online via the library website. Max 2 hours/session.
+  - Individual study desks: First-come, first-served.
+  - Computers: Available on ground floor and 1st floor.
+Self-service: Borrow and return books using self-service machines near the entrance.
+Interlibrary Loan (ILL): Request books from other libraries if not available at UNNC. Submit ILL requests via the library website.
+Research Support: Librarians offer workshops on academic writing, referencing, and database searching. Check the library events calendar.
+Overdue Fines: 0.1 RMB/day per overdue book. Maximum fine: 10 RMB per book. Clear fines at the library desk.
+
+[Campus Buildings & Locations]
+Portland Building (PB): Administrative hub. Houses The Hub (Room 120), IT Service Desk (Room 305), Student Union offices, Starbucks (ground floor).
+Science and Engineering Building (SEB): Main building for FoSE departments. Labs, lecture halls, offices. Also called "Teaching Building 3" in some maps.
+Trent Building (TB): Houses FoHSS departments — English, Education, Psychology, International Studies.
+Sir Peter Mansfield Building (SPMB): Business School (NBS) headquarters. Named after the Nobel Prize-winning physicist.
+Sir Jesse Boot Foundation Building: Contains the Provost's Office, ceremonial hall. Graduation ceremonies held here.
+Admin Building (AB): Finance Office, HR, Registrar's Office.
+Library Building: Central campus. See Library section.
+Teaching Buildings 1 & 2 (TB1, TB2): General-purpose lecture halls and seminar rooms used by all faculties.
+Building 23: Campus Clinic (Room 109).
+Student Activity Centre (SAC): Student club rooms, event spaces, small theatre.
+Gymnasium: Sports hall, badminton courts, table tennis. Also used as exam venue.
+Swimming Pool: 25m indoor pool. Adjacent to the Gymnasium. Hours: 12:00-20:00 (term time).
+International Building: International Office, visa support, exchange program coordination.
+
+[Dining & Food on Campus]
+Canteen 1 (Teaching Area Canteen):
+  - Location: Near the teaching buildings.
+  - Hours: 07:00 - 20:00.
+  - Cuisine: Chinese food — rice dishes, noodles, stir-fry, dumplings, soup.
+  - Price range: 8-20 RMB per meal.
+  - Payment: Campus card (student ID) or Alipay/WeChat Pay.
+Canteen 2 (Dormitory Area Canteen):
+  - Location: Near student dormitories.
+  - Hours: 07:00 - 21:00.
+  - Cuisine: Diverse — Halal food section, Western food corner, bakery, fruit bar.
+  - Price range: 8-25 RMB per meal.
+  - Largest canteen on campus.
+Canteen 3 (North Area):
+  - Location: North side of campus.
+  - Hours: 11:00 - 13:00, 17:00 - 19:00 (lunch and dinner only).
+  - Cuisine: Chinese food, hot pot section.
+  - Price range: 10-25 RMB per meal.
+Starbucks: Two locations — Library Building (ground floor) and Portland Building. Hours: 08:00 - 21:00.
+Convenience Stores: Several around the dormitory area. Open until ~23:00.
+Bubble Tea & Snack Shops: Multiple options near the dormitory gates.
+Off-campus: The area around the South Gate has numerous restaurants, convenience stores, and fast-food options.
+Delivery: Food delivery apps (Meituan, Ele.me) deliver to campus gates. Collect at the designated pickup area.
+
+[Sports & Recreation]
+Gymnasium: Indoor badminton (8 courts), table tennis, basketball. Equipment rental available.
+Swimming Pool: 25m indoor heated pool. Student rate: 10 RMB/session. Swimming cap required.
+Outdoor Facilities: Football pitch (artificial turf), running track, basketball courts (4), tennis courts (2), volleyball courts.
+Fitness Center: Weights, cardio machines, yoga space. Semester pass: ~80 RMB. Hours: 07:00 - 22:00.
+Sports Clubs: Football, basketball, badminton, swimming, tennis, table tennis, volleyball, martial arts, dance, yoga, hiking, frisbee, rugby.
+Annual Events: UNNC Sports Day (November), Inter-faculty competitions, Marathon relay, Swimming gala.
+Booking: Court/facility bookings via the Sports Centre reception or online booking system.
+
+[Transportation]
+Campus Shuttle Bus:
+  - Campus Loop: Free, runs every 15 minutes during term. Route connects dormitory area, teaching area, and Portland Building.
+  - Weekend Downtown Bus: Runs to Tianyi Square (central Ningbo). Check schedule at The Hub.
+Public Transport:
+  - Bus: Multiple city bus routes stop near UNNC South Gate and East Gate. Bus fare: 2 RMB (cash or Alipay).
+  - Metro: Nearest metro station is "Shounan" (Line 3), approximately 15 minutes walk or 5 minutes by bus from campus.
+  - Taxi/Didi: Didi (Chinese ride-hailing app) is the most common. Airport to campus: ~80-120 RMB.
+Ningbo Lishe Airport (NGB): ~20 km from campus, 30-40 minutes by taxi.
+Ningbo Railway Station: ~15 km from campus. High-speed rail connections to Shanghai (~2h), Hangzhou (~1.5h), Beijing (~6h).
+Bicycle: Shared bikes (Hellobike, Meituan Bike) available around campus gates. Campus is also bike-friendly with bike racks.

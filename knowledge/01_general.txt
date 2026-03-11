@@ -1,0 +1,61 @@
+[Campus Overview]
+University Name: University of Nottingham Ningbo China (UNNC)
+Founded: 2004, the first Sino-foreign cooperative university in China.
+Parent University: University of Nottingham (UK, founded 1881, Russell Group).
+Location: 199 Taikang East Road, Yinzhou District, Ningbo, Zhejiang Province, China (315100).
+Campus Size: Approximately 500 mu (33 hectares). The campus features modern architecture combining British and Chinese design elements.
+Students: More than 10,000 students from over 70 countries and regions.
+Teaching Language: English (all degree programs are taught in English).
+Degrees: All degrees are awarded by the University of Nottingham (UK), internationally recognized.
+Ranking: The University of Nottingham is ranked #97 in the QS World University Rankings 2026.
+Accreditations: Russell Group member (UK), U21 network, QAA-reviewed, EQUIS/AMBA/AACSB (Business School triple accreditation).
+Motto: "A city is not built in a day." (Campus motto displayed on the Sir Jesse Boot Foundation Building).
+UNNC is part of the University of Nottingham's global network, which includes campuses in the UK (Nottingham), China (Ningbo), and Malaysia (Semenyih).
+Employability: 9 out of 10 UNNC graduates enter global top universities or companies (2023/24 report).
+
+[The Hub - Student Service Centre]
+Location: Portland Building, Room 120 (ground floor).
+Hours: Monday - Friday, 08:30 - 17:00. Closed on weekends and public holidays.
+Tel: +86 (0)574 8818 0000 (University Switchboard — also connects to The Hub).
+Email: TheHub@nottingham.edu.cn
+Services provided by The Hub:
+- Student ID card replacement (30 RMB, 3-5 working days)
+- Official transcript requests (20 RMB/copy, 5 working days)
+- Certificate and letter requests (enrollment verification, etc.)
+- General enquiries and referrals to the correct department
+- Lost and found
+- Shuttle bus schedule and campus maps
+- Accommodation queries
+- Payment and fee enquiries
+- Academic appeals guidance (initial point of contact)
+Note: The Hub is the FIRST point of contact for most student administrative needs. If unsure where to go, start here.
+
+[Emergency & Security]
+24-hour Emergency Hotline: +86 (0)574 8818 0000 (handles all campus emergencies).
+Campus Security Office: 24-hour patrol and monitoring. Tel: 8818 0110.
+Campus Clinic: Building 23, Room 109. Tel: 8818 0120. Hours: Mon-Fri 08:30-17:00.
+  - Provides basic medical care, first aid, and referrals to local hospitals.
+  - For after-hours medical emergencies, call 8818 0000 (24h hotline).
+Nearest Hospital: Ningbo Yinzhou No. 2 Hospital (~10 min by taxi from campus).
+Fire Emergency: Call 119 (national fire emergency) or 8818 0000 (campus).
+Police: Call 110 (national police) or contact Campus Security 8818 0110.
+Ambulance: Call 120 (national ambulance service).
+Important: In any campus emergency, call 8818 0000 first — the 24h operator can dispatch security, medical, or fire response immediately.
+
+[IT Services]
+IT Service Desk Location: Portland Building, Room 305.
+Tel: +86 (0)574 8818 0009.
+Email: ITServiceDesk@nottingham.edu.cn
+Hours: Monday - Friday, 08:30 - 17:00.
+Wi-Fi (eduroam):
+  - SSID: eduroam
+  - Username: yourusername@nottingham.edu.cn (e.g., scxyy1@nottingham.edu.cn)
+  - Password: Your university account password
+  - Troubleshooting: (1) Forget/remove saved eduroam profile, (2) Re-enter credentials, (3) Ensure date/time are correct on your device, (4) Contact IT Desk if still failing.
+  - eduroam works at all participating universities worldwide.
+VPN Access: Required for accessing some UK-hosted services from off-campus. Download the university VPN client from the IT website.
+Software: Microsoft Office 365 is free for all students and staff via the university account. MATLAB, SPSS, and other academic software available through IT.
+Email: All students receive a university email (username@nottingham.edu.cn). Use Outlook Web or configure in email clients.
+Password Reset: Self-service at password.nottingham.edu.cn, or contact IT Desk.
+Printing: Print credits loaded via student ID card. B&W: 0.1 RMB/page, Color: 0.5 RMB/page. Printers in Library, Portland Building computer labs, and faculty buildings.
+Computer Labs: Portland Building (multiple rooms), Library (ground floor). Available during building opening hours.
