@@ -23,6 +23,7 @@ import json
 import re
 import socket
 import tempfile
+import time
 import wave
 from dataclasses import dataclass, field
 
@@ -276,6 +277,7 @@ async def handle_client(ws: WebSocketServerProtocol):
     session = SessionState()
     buffer = bytearray()
     max_bytes = _max_utterance_bytes()
+    utterance_id = 0
 
     try:
         while True:
@@ -373,39 +375,52 @@ async def handle_client(ws: WebSocketServerProtocol):
 
             pcm_bytes = bytes(buffer)
             buffer.clear()
+            utterance_id += 1
+            total_started = time.perf_counter()
 
             await _send_json(
                 ws,
                 {
                     "type": "state",
                     "state": "processing",
+                    "utterance_id": utterance_id,
                     "input_bytes": len(pcm_bytes),
                 },
             )
 
             try:
+                asr_started = time.perf_counter()
                 asr_text = _transcribe_pcm16_bytes(pcm_bytes)
+                asr_ms = int((time.perf_counter() - asr_started) * 1000)
                 if should_ignore(asr_text):
                     await _send_json(
                         ws,
                         {
                             "type": "ignored",
+                            "utterance_id": utterance_id,
                             "reason": "noisy_or_short_asr",
+                            "asr_ms": asr_ms,
                         },
                     )
                     continue
 
+                llm_started = time.perf_counter()
                 reply_text = _generate_reply_text(session, asr_text)
+                llm_ms = int((time.perf_counter() - llm_started) * 1000)
 
                 session.history.append(("user", asr_text))
                 session.history.append(("assistant", reply_text))
 
+                tts_started = time.perf_counter()
                 audio_bytes, sample_rate = _synthesize_to_pcm16(reply_text)
+                tts_ms = int((time.perf_counter() - tts_started) * 1000)
+                total_ms = int((time.perf_counter() - total_started) * 1000)
 
                 await _send_json(
                     ws,
                     {
                         "type": "text",
+                        "utterance_id": utterance_id,
                         "asr_text": asr_text,
                         "reply_text": reply_text,
                     },
@@ -415,10 +430,15 @@ async def handle_client(ws: WebSocketServerProtocol):
                     ws,
                     {
                         "type": "done",
+                        "utterance_id": utterance_id,
                         "encoding": "pcm16",
                         "sample_rate": sample_rate,
                         "channels": 1,
                         "bytes": len(audio_bytes),
+                        "asr_ms": asr_ms,
+                        "llm_ms": llm_ms,
+                        "tts_ms": tts_ms,
+                        "total_ms": total_ms,
                         "assistant": ASSISTANT_NAME,
                     },
                 )
@@ -427,6 +447,7 @@ async def handle_client(ws: WebSocketServerProtocol):
                     ws,
                     {
                         "type": "error",
+                        "utterance_id": utterance_id,
                         "code": "PROCESSING_ERROR",
                         "message": str(exc),
                     },
