@@ -1,0 +1,5 @@
+[Doc: mail_0002_Booking_Notification]
+Source: knowledge/import/raw/email_web_txt\mail_0002_Booking_Notification.txt
+Last updated: 2026-03-16 13:54
+
+Subject: Booking Notification Source: Outlook Web Inbox Hi there, The Booking request has been submitted by Yiming ZHANG ([REDACTED_STUDENT_ID]). Please see below for more information. Subject: Booked Location: 2F - Editing Studio 02 (Library) Start Time: [REDACTED_PHONE]:30:00 End Time: [REDACTED_PHONE]:30:00 Booking Status: Booked Attendees: Hongxi LYU ([REDACTED_STUDENT_ID]) Note: The room needs to be checked in on the screen near the door. You can check in 15 min in advance before the booking start time if no one else is using the room. Please also note that the room needs to be checked in within 15min after the booking start time, otherwise it would be released. This is an automatically generated email. Please do not reply to it. If you have any questions, please visit inquiry desks in the library for assistance.
