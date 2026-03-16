@@ -53,6 +53,17 @@ PHRASE_TIME_LIMIT = 15         # max seconds per utterance
 # ───────────────────────── Behavior ──────────────────────
 RUN_MODE = "VOICE"               # "TEXT" or "VOICE"
 
+# ───────────────────────── WebSocket (ESP32) ─────────────
+WS_HOST = "0.0.0.0"
+WS_PORT = 8765
+WS_MAX_MESSAGE_BYTES = 128 * 1024
+WS_IDLE_TIMEOUT_SEC = 30
+WS_MAX_UTTERANCE_SEC = 15
+WS_INPUT_SAMPLE_RATE = 16000
+WS_INPUT_CHANNELS = 1
+WS_INPUT_SAMPLE_WIDTH_BYTES = 2   # PCM16
+WS_LOG_VERBOSE = True
+
 # University identity
 UNIVERSITY_NAME = "University of Nottingham Ningbo China"
 UNIVERSITY_SHORT = "UNNC"
