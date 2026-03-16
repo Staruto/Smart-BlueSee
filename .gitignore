@@ -2,3 +2,8 @@ __pycache__/
 logs/
 Speaker_Chosen_Mode/
 client.code-workspace
+
+# Import pipeline artifacts and raw private exports
+knowledge/import/manifests/
+knowledge/import/raw/
+*.mbox
