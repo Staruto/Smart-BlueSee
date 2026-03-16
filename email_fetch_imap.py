@@ -43,7 +43,20 @@ def main() -> None:
 
     print(f"[IMAP] Connecting to {args.host}:{args.port} ...")
     with imaplib.IMAP4_SSL(args.host, args.port) as imap:
-        imap.login(args.username, password)
+        try:
+            imap.login(args.username, password)
+        except imaplib.IMAP4.error as e:
+            print("\n[IMAP Error] LOGIN failed.")
+            print(f"Details: {e}")
+            print("\nPossible causes:")
+            print("1) Tenant disables basic IMAP auth for your account.")
+            print("2) MFA/security policy requires app-password or modern auth.")
+            print("3) IMAP protocol is disabled on mailbox settings.")
+            print("\nWhat to do next:")
+            print("- Ask campus IT to confirm IMAP is enabled for your mailbox.")
+            print("- If IMAP remains blocked, use local web export scripts and then kb_importer.")
+            print("  See IMPORT_WORKFLOW.md for web-export steps.")
+            return
         status, _ = imap.select(args.folder)
         if status != "OK":
             raise RuntimeError(f"Failed to open folder: {args.folder}")

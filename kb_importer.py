@@ -310,6 +310,9 @@ def _extract_doc_text(path: str) -> str:
 	if ext in (".txt", ".md", ".csv"):
 		with open(path, "r", encoding="utf-8", errors="ignore") as f:
 			return _normalize_text(f.read())
+	if ext in (".html", ".htm"):
+		with open(path, "r", encoding="utf-8", errors="ignore") as f:
+			return _extract_html_text(f.read())
 	if ext == ".pdf":
 		try:
 			from pypdf import PdfReader  # type: ignore
@@ -350,7 +353,7 @@ def import_docs(
 ) -> List[ImportRecord]:
 	records: List[ImportRecord] = []
 	seen: set[str] = set()
-	allowed_ext = {".txt", ".md", ".csv", ".pdf", ".docx", ".xlsx"}
+	allowed_ext = {".txt", ".md", ".csv", ".pdf", ".docx", ".xlsx", ".html", ".htm"}
 	files: List[str] = []
 
 	if os.path.isfile(source_path):
