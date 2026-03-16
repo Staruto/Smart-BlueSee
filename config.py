@@ -12,6 +12,18 @@ KNOWLEDGE_BASE_PATH = os.path.join(BASE_DIR, "campus_info.txt")       # legacy s
 KNOWLEDGE_DIR = os.path.join(BASE_DIR, "knowledge")                    # multi-file KB directory (preferred)
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 
+# Knowledge import pipeline (email / moodle / misc docs)
+IMPORT_ROOT_DIR = os.path.join(KNOWLEDGE_DIR, "import")
+IMPORT_EMAIL_OUTPUT_DIR = os.path.join(IMPORT_ROOT_DIR, "email")
+IMPORT_MOODLE_OUTPUT_DIR = os.path.join(IMPORT_ROOT_DIR, "moodle")
+IMPORT_DOCS_OUTPUT_DIR = os.path.join(IMPORT_ROOT_DIR, "docs")
+IMPORT_MANIFEST_DIR = os.path.join(IMPORT_ROOT_DIR, "manifests")
+
+ENABLE_IMPORT_PII_REDACTION = True
+ENABLE_IMPORT_DEDUP = True
+IMPORT_MIN_CONTENT_CHARS = 50
+IMPORT_MAX_ITEMS_PER_RUN = 0  # 0 = no limit
+
 # ───────────────────────── LLM ───────────────────────────
 LLM_N_CTX = 8192               # context window size
 LLM_N_BATCH = 1024             # batch size for prompt processing
