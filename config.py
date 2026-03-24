@@ -51,7 +51,7 @@ PAUSE_THRESHOLD = 0.6          # seconds of silence before phrase end
 PHRASE_TIME_LIMIT = 15         # max seconds per utterance
 
 # ───────────────────────── Behavior ──────────────────────
-RUN_MODE = "VOICE"               # "TEXT" or "VOICE"
+RUN_MODE = "TEXT"               # "TEXT" or "VOICE"
 
 # ───────────────────────── WebSocket (ESP32) ─────────────
 WS_HOST = "0.0.0.0"

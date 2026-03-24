@@ -111,3 +111,19 @@ netsh advfirewall firewall add rule name="Bluesee WS 8765" dir=in action=allow p
 - 收到 `EMPTY_AUDIO`：确认 MCU 的二进制帧确实发出且在 `end_utterance` 前送达。
 - 收到 `UTTERANCE_TOO_LONG`：缩短一次说话时长，或调大 `WS_MAX_UTTERANCE_SEC`。
 - 收到 `IDLE_TIMEOUT`：发送节奏中断过久，检查 MCU 发送循环。
+
+### 7) 特别注意：两台都连到“同学PC热点”时
+
+- 你必须使用你电脑在该热点下拿到的 IPv4 地址，不是你自己热点时的旧地址。
+- 启动 `ws_server.py` 后，优先使用启动日志中的 `LAN IPv4s` 列表地址。
+- 先在同学 PC 上做端口探测，再让 ESP32 连：
+
+```powershell
+Test-NetConnection <你的IP> -Port 8765
+```
+
+如果 `TcpTestSucceeded` 是 `False`，优先排查：
+
+- 服务器是否正在运行。
+- 你电脑防火墙是否放行 8765/TCP 入站。
+- 热点是否启用了 AP Isolation / Client Isolation（若开启，终端之间互相不可见）。

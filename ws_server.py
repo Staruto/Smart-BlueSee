@@ -82,6 +82,11 @@ async def _send_json(ws: WebSocketServerProtocol, payload: dict):
     await ws.send(_safe_json(payload))
 
 
+async def _safe_send_json(ws: WebSocketServerProtocol, payload: dict):
+    with contextlib.suppress(ConnectionClosed):
+        await _send_json(ws, payload)
+
+
 def _local_lan_ip() -> str:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -91,6 +96,38 @@ def _local_lan_ip() -> str:
         return "127.0.0.1"
     finally:
         sock.close()
+
+
+def _candidate_lan_ips() -> list[str]:
+    ips: set[str] = set()
+
+    preferred = _local_lan_ip()
+    if preferred != "127.0.0.1":
+        ips.add(preferred)
+
+    with contextlib.suppress(OSError):
+        host = socket.gethostname()
+        for ip in socket.gethostbyname_ex(host)[2]:
+            if ip.startswith("127."):
+                continue
+            ips.add(ip)
+
+    # Show private-LAN addresses first, then others.
+    def _priority(ip: str) -> int:
+        if ip.startswith("192.168."):
+            return 0
+        if ip.startswith("10."):
+            return 1
+        if ip.startswith("172."):
+            try:
+                second = int(ip.split(".")[1])
+            except (IndexError, ValueError):
+                return 3
+            if 16 <= second <= 31:
+                return 2
+        return 3
+
+    return sorted(ips, key=lambda x: (_priority(x), x))
 
 
 def _max_utterance_bytes() -> int:
@@ -283,8 +320,9 @@ async def handle_client(ws: WebSocketServerProtocol):
         while True:
             try:
                 message = await asyncio.wait_for(ws.recv(), timeout=WS_IDLE_TIMEOUT_SEC)
-            except TimeoutError:
-                await _send_json(
+            except (asyncio.TimeoutError, TimeoutError):
+                _log(f"idle timeout: {client_id} ({WS_IDLE_TIMEOUT_SEC}s without frames)")
+                await _safe_send_json(
                     ws,
                     {
                         "type": "error",
@@ -292,7 +330,8 @@ async def handle_client(ws: WebSocketServerProtocol):
                         "message": "No incoming frames within timeout window.",
                     },
                 )
-                await ws.close(code=1000, reason="Idle timeout")
+                with contextlib.suppress(ConnectionClosed):
+                    await ws.close(code=1000, reason="Idle timeout")
                 break
 
             if isinstance(message, bytes):
@@ -454,16 +493,22 @@ async def handle_client(ws: WebSocketServerProtocol):
                 )
     except ConnectionClosed:
         _log(f"disconnected: {client_id}")
+    except asyncio.TimeoutError:
+        # Defensive guard for event-loop timeout propagation from websocket internals.
+        _log(f"connection timeout propagated: {client_id}")
     finally:
         await _release_active_client(client_id)
 
 
 async def main():
     lan_ip = _local_lan_ip()
+    candidate_ips = _candidate_lan_ips()
     print("=" * 60)
     print("ESP32 WebSocket voice server")
     print(f"Bind      : ws://{WS_HOST}:{WS_PORT}")
     print(f"LAN URL   : ws://{lan_ip}:{WS_PORT}")
+    if candidate_ips:
+        print("LAN IPs   : " + ", ".join(candidate_ips))
     print(f"Input PCM : 16-bit, {WS_INPUT_SAMPLE_RATE}Hz, mono")
     print("Mode      : single active device")
     print("=" * 60)
