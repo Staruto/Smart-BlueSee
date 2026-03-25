@@ -47,8 +47,11 @@ from config import (
     RUN_MODE,
     UNIVERSITY_NAME, UNIVERSITY_SHORT, ASSISTANT_NAME,
     HALLUCINATION_PHRASES, EMERGENCY_KEYWORDS,
+    ASSISTANT_STYLE_MODE, GENERAL_QA_VERBOSITY,
+    WEB_SEARCH_SOURCES_MAX,
 )
 from knowledge_base import KnowledgeBase
+from web_search import build_sources_list, build_web_context, maybe_web_search
 
 
 # ═══════════════════════════════════════════════════════════
@@ -131,34 +134,51 @@ current_run_mode: str = RUN_MODE                # mutable at runtime
 # ═══════════════════════════════════════════════════════════
 #  System Prompt
 # ═══════════════════════════════════════════════════════════
-def get_system_prompt(context: str) -> str:
+def get_system_prompt(context: str, has_web_context: bool = False) -> str:
     """Build Llama-3.1 system prompt with relevant context."""
+    style_line = (
+        "Be warm, conversational, and emotionally supportive when appropriate."
+        if ASSISTANT_STYLE_MODE == "companion_full"
+        else "Keep a practical and concise campus-assistant tone."
+    )
+    verbosity_line = (
+        "Prefer concise answers unless the user asks for details."
+        if GENERAL_QA_VERBOSITY == "brief"
+        else "Use balanced detail and offer follow-up options."
+        if GENERAL_QA_VERBOSITY == "balanced"
+        else "Give detailed, structured answers when useful."
+    )
+    source_line = (
+        "When Web Evidence is provided, prioritize it for time-sensitive claims and avoid guessing."
+        if has_web_context
+        else "If information is uncertain, say what you know and what is uncertain."
+    )
+
     return (
         "<|start_header_id|>system<|end_header_id|>\n"
         f"You are '{ASSISTANT_NAME}', the AI campus assistant for "
         f"{UNIVERSITY_NAME} ({UNIVERSITY_SHORT}).\n"
-        "Your goal is to help students and faculty with daily campus needs.\n"
+        "Your goal is to help students and faculty with daily campus needs, and provide reliable general assistance beyond campus topics.\n"
         "\n"
-        "CONTEXT INFORMATION:\n"
+        "CONTEXT INFORMATION (Campus + optional Web Evidence):\n"
         f"{context}\n"
         "\n"
         "INSTRUCTIONS:\n"
-        "1. ONLY use the Context Information above to answer campus-related "
-        "questions. Do NOT add, invent, or guess any information that is "
-        "not explicitly stated in the context — including program names, "
-        "locations, phone numbers, policies, or dates. If the answer is "
-        "not in the context, say so and suggest contacting The Hub "
+        "1. For campus-specific facts (program names, offices, phone numbers, "
+        "policies, dates), prioritize the provided Campus Context and do not "
+        "invent details. If missing, say so and suggest contacting The Hub "
         "(Portland Building 120) or the relevant office.\n"
-        "2. When listing items (programs, services, etc.), list ONLY "
-        "those that appear in the Context Information. Never pad the "
-        "list with items from your general knowledge.\n"
-        "3. Be concise, accurate, and friendly.\n"
+        "2. For general (non-campus) questions, answer naturally using reliable "
+        "knowledge. For time-sensitive or rapidly changing facts, rely on Web "
+        "Evidence when present.\n"
+        "3. Never fabricate sources, links, or specific numbers.\n"
         "4. For mental-health or safety concerns, ALWAYS prioritize "
         "suggesting professional help: Campus Counseling Center and the "
         "24-hour Emergency Hotline (8818 0000).\n"
-        "5. You may answer general (non-campus) questions briefly, but "
-        "always clarify when information is outside your campus knowledge.\n"
-        "6. When users greet you, introduce yourself as Bluesee, the UNNC "
+        f"5. {style_line}\n"
+        f"6. {verbosity_line}\n"
+        f"7. {source_line}\n"
+        "8. When users greet you, introduce yourself as Bluesee, the UNNC "
         "campus assistant.\n"
         "<|eot_id|>\n"
     )
@@ -239,7 +259,7 @@ def maybe_summarize():
 # ═══════════════════════════════════════════════════════════
 #  Prompt Builder
 # ═══════════════════════════════════════════════════════════
-def build_prompt(user_input: str) -> str:
+def build_prompt(user_input: str) -> tuple[str, list[str], str]:
     """
     Full prompt:  system → (summary) → history → current user input.
     Context is retrieved from the KB based on the query.
@@ -247,12 +267,24 @@ def build_prompt(user_input: str) -> str:
     """
     # Retrieve only relevant KB sections (with stats)
     context, kb_stats = kb.retrieve_debug(user_input)
-    system_prompt = get_system_prompt(context)
+    web_results, route_reason = maybe_web_search(user_input, kb_stats)
+    web_context = build_web_context(web_results)
+
+    merged_context = context
+    if web_context:
+        merged_context += "\n\n[Web Evidence]\n" + web_context
+
+    system_prompt = get_system_prompt(merged_context, has_web_context=bool(web_context))
+    sources = build_sources_list(web_results, WEB_SEARCH_SOURCES_MAX)
 
     n = kb_stats.get("sections_used", "?")
     c = kb_stats.get("context_chars", "?")
     t = kb_stats.get("context_tokens_est", "?")
     print(f"[KB]: {n} sections, {c} chars (~{t} tokens)")
+    if web_results:
+        print(f"[Web]: {len(web_results)} results, reason={route_reason}")
+    else:
+        print(f"[Web]: skipped, reason={route_reason}")
     if kb_stats.get("details"):
         for sc, title, src, cost in kb_stats["details"]:
             print(f"       {sc:.3f}  [{title}] ({src}) {cost}ch")
@@ -275,7 +307,7 @@ def build_prompt(user_input: str) -> str:
             "<|eot_id|>\n"
         )
 
-    return (
+    prompt = (
         system_prompt
         + history_block
         + "<|start_header_id|>user<|end_header_id|>\n"
@@ -283,6 +315,7 @@ def build_prompt(user_input: str) -> str:
         + "\n<|eot_id|>\n"
         + "<|start_header_id|>assistant<|end_header_id|>\n"
     )
+    return prompt, sources, route_reason
 
 
 # ═══════════════════════════════════════════════════════════
@@ -351,7 +384,7 @@ def process_user_text(user_text: str, log_file: str) -> str:
     # ── Summarize if needed ──
     maybe_summarize()
 
-    prompt = build_prompt(user_text)
+    prompt, sources, route_reason = build_prompt(user_text)
 
     print(f"[{ASSISTANT_NAME}]: ", end="", flush=True)
     full_response = ""
@@ -395,6 +428,12 @@ def process_user_text(user_text: str, log_file: str) -> str:
 
     print("\n")
 
+    if sources:
+        print("Sources:")
+        for idx, src in enumerate(sources, start=1):
+            print(f"  {idx}. {src}")
+        print()
+
     # ── Flush remaining TTS buffer ──
     if tts_pipeline:
         if buffer.strip():
@@ -412,6 +451,10 @@ def process_user_text(user_text: str, log_file: str) -> str:
 
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(f"[{ASSISTANT_NAME}]: {full_response}\n")
+        f.write(f"[Web Route]: {route_reason}\n")
+        if sources:
+            for src in sources:
+                f.write(f"[Source]: {src}\n")
 
     # ── Stats ──
     prompt_tokens = llm.tokenize(prompt.encode("utf-8"))

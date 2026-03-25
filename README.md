@@ -58,6 +58,34 @@ WebSocket options are in `config.py`:
 - `WS_INPUT_SAMPLE_RATE`, `WS_INPUT_CHANNELS`, `WS_INPUT_SAMPLE_WIDTH_BYTES`
 - `WS_LOG_VERBOSE`
 
+### Web Search (Serper)
+
+This project supports optional Web Search with automatic routing.
+
+1. Set API key (PowerShell):
+
+```powershell
+$env:SERPER_API_KEY="your_serper_api_key"
+```
+
+2. Enable in `config.py`:
+
+- `ENABLE_WEB_SEARCH = True`
+- `WEB_SEARCH_PROVIDER = "serper"`
+
+3. Optional tuning in `config.py`:
+
+- `WEB_SEARCH_MAX_RESULTS`
+- `WEB_SEARCH_TIMEOUT_SEC`
+- `WEB_SEARCH_MIN_CONFIDENCE`
+- `WEB_SEARCH_SOURCES_MAX`
+
+Behavior:
+
+- Campus questions still prefer local KB context.
+- Time-sensitive / low-KB-coverage questions auto-trigger Web search.
+- Replies remain natural, with a short sources list when web evidence is used.
+
 ## MCU 联调当天你要做什么
 
 按下面顺序做即可：

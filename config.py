@@ -69,6 +69,11 @@ UNIVERSITY_NAME = "University of Nottingham Ningbo China"
 UNIVERSITY_SHORT = "UNNC"
 ASSISTANT_NAME = "Bluesee"
 
+# Assistant style
+ASSISTANT_STYLE_MODE = "companion_full"  # campus_first | companion_full
+GENERAL_QA_VERBOSITY = "balanced"        # brief | balanced | detailed
+PROMPT_VERSION = "v5"
+
 # ASR hallucination filter — phrases Whisper sometimes emits on silence
 HALLUCINATION_PHRASES = [
     "thanks for watching",
@@ -99,3 +104,15 @@ KB_MAX_INJECT_CHARS = 800       # truncate individual sections at this limit
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"   # ~80 MB, fast, good quality
 EMBEDDING_WEIGHT = 0.7                        # weight for embedding score in hybrid
 TFIDF_WEIGHT = 0.3                            # weight for TF-IDF score in hybrid
+
+# Web search (optional, auto-routed)
+ENABLE_WEB_SEARCH = False
+WEB_SEARCH_PROVIDER = "serper"
+SERPER_API_KEY = os.getenv("SERPER_API_KEY", "")
+WEB_SEARCH_MAX_RESULTS = 5
+WEB_SEARCH_TIMEOUT_SEC = 8
+WEB_SEARCH_LOCALE = "zh-CN"
+WEB_SEARCH_SAFE = "moderate"                # off | moderate | strict
+WEB_SEARCH_MIN_CONFIDENCE = 0.4
+WEB_SEARCH_MAX_CONTEXT_CHARS = 4000
+WEB_SEARCH_SOURCES_MAX = 3
