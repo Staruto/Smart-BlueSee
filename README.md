@@ -83,8 +83,10 @@ $env:SERPER_API_KEY="your_serper_api_key"
 Behavior:
 
 - Campus questions still prefer local KB context.
-- Time-sensitive / low-KB-coverage questions auto-trigger Web search.
-- Replies remain natural, with a short sources list when web evidence is used.
+- Deterministic questions (for example, current date/time) are answered locally first.
+- Time-sensitive / low-KB-coverage questions can auto-trigger Web search.
+- Social sources are down-ranked; higher-quality sources are preferred.
+- Replies remain natural, with a short sources list when web evidence passes quality gates.
 
 ## MCU 联调当天你要做什么
 

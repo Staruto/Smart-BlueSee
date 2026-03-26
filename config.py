@@ -106,9 +106,9 @@ EMBEDDING_WEIGHT = 0.7                        # weight for embedding score in hy
 TFIDF_WEIGHT = 0.3                            # weight for TF-IDF score in hybrid
 
 # Web search (optional, auto-routed)
-ENABLE_WEB_SEARCH = False
+ENABLE_WEB_SEARCH = True
 WEB_SEARCH_PROVIDER = "serper"
-SERPER_API_KEY = os.getenv("SERPER_API_KEY", "")
+SERPER_API_KEY = "2d8699685f52053c3d4d210e8dad0889a8d6615d"  # os.getenv("SERPER_API_KEY", "")
 WEB_SEARCH_MAX_RESULTS = 5
 WEB_SEARCH_TIMEOUT_SEC = 8
 WEB_SEARCH_LOCALE = "zh-CN"
@@ -116,3 +116,17 @@ WEB_SEARCH_SAFE = "moderate"                # off | moderate | strict
 WEB_SEARCH_MIN_CONFIDENCE = 0.4
 WEB_SEARCH_MAX_CONTEXT_CHARS = 4000
 WEB_SEARCH_SOURCES_MAX = 3
+
+# Routing quality controls
+ENABLE_LOCAL_TOOLS = True
+ENABLE_KB_FOR_GENERAL = False
+WEB_SEARCH_MIN_ACCEPTED_SCORE = 0.55
+WEB_SEARCH_SOCIAL_PENALTY = 0.35
+WEB_SEARCH_PREFERRED_DOMAINS = (
+    "gov",
+    "edu",
+    "who.int",
+    "wikipedia.org",
+    "timeanddate.com",
+)
+WEB_SEARCH_BLOCKED_DOMAINS = ()

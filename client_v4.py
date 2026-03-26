@@ -51,7 +51,14 @@ from config import (
     WEB_SEARCH_SOURCES_MAX,
 )
 from knowledge_base import KnowledgeBase
-from web_search import build_sources_list, build_web_context, maybe_web_search
+from local_tools import maybe_answer_local
+from web_search import (
+    build_sources_list,
+    build_web_context,
+    classify_query_intent,
+    maybe_web_search,
+    should_use_kb,
+)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -171,14 +178,16 @@ def get_system_prompt(context: str, has_web_context: bool = False) -> str:
         "2. For general (non-campus) questions, answer naturally using reliable "
         "knowledge. For time-sensitive or rapidly changing facts, rely on Web "
         "Evidence when present.\n"
-        "3. Never fabricate sources, links, or specific numbers.\n"
-        "4. For mental-health or safety concerns, ALWAYS prioritize "
+        "3. For deterministic local facts such as current date/time, answer "
+        "directly and do not refuse unnecessarily.\n"
+        "4. Never fabricate sources, links, or specific numbers.\n"
+        "5. For mental-health or safety concerns, ALWAYS prioritize "
         "suggesting professional help: Campus Counseling Center and the "
         "24-hour Emergency Hotline (8818 0000).\n"
-        f"5. {style_line}\n"
-        f"6. {verbosity_line}\n"
-        f"7. {source_line}\n"
-        "8. When users greet you, introduce yourself as Bluesee, the UNNC "
+        f"6. {style_line}\n"
+        f"7. {verbosity_line}\n"
+        f"8. {source_line}\n"
+        "9. When users greet you, introduce yourself as Bluesee, the UNNC "
         "campus assistant.\n"
         "<|eot_id|>\n"
     )
@@ -265,8 +274,19 @@ def build_prompt(user_input: str) -> tuple[str, list[str], str]:
     Context is retrieved from the KB based on the query.
     Returns the prompt string.  Also prints retrieval stats.
     """
-    # Retrieve only relevant KB sections (with stats)
-    context, kb_stats = kb.retrieve_debug(user_input)
+    intent = classify_query_intent(user_input)
+    use_kb = should_use_kb(user_input)
+
+    if use_kb:
+        context, kb_stats = kb.retrieve_debug(user_input)
+    else:
+        context, kb_stats = "", {
+            "sections_used": 0,
+            "context_chars": 0,
+            "context_tokens_est": 0,
+            "details": [],
+        }
+
     web_results, route_reason = maybe_web_search(user_input, kb_stats)
     web_context = build_web_context(web_results)
 
@@ -280,7 +300,8 @@ def build_prompt(user_input: str) -> tuple[str, list[str], str]:
     n = kb_stats.get("sections_used", "?")
     c = kb_stats.get("context_chars", "?")
     t = kb_stats.get("context_tokens_est", "?")
-    print(f"[KB]: {n} sections, {c} chars (~{t} tokens)")
+    print(f"[Intent]: {intent}")
+    print(f"[KB]: {n} sections, {c} chars (~{t} tokens), use_kb={use_kb}")
     if web_results:
         print(f"[Web]: {len(web_results)} results, reason={route_reason}")
     else:
@@ -379,7 +400,18 @@ def process_user_text(user_text: str, log_file: str) -> str:
         chat_history.append(("assistant", emergency_msg))
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(f"[{ASSISTANT_NAME}]: {emergency_msg}\n")
+            f.write("[Web Route]: emergency\n")
         return emergency_msg
+
+    local_answer, local_reason = maybe_answer_local(user_text)
+    if local_answer:
+        print(f"[{ASSISTANT_NAME}]: {local_answer}\n")
+        chat_history.append(("user", user_text))
+        chat_history.append(("assistant", local_answer))
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(f"[{ASSISTANT_NAME}]: {local_answer}\n")
+            f.write(f"[Web Route]: {local_reason}\n")
+        return local_answer
 
     # ── Summarize if needed ──
     maybe_summarize()

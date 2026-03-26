@@ -60,7 +60,14 @@ from client_v4 import (
     tts_engine,
     asr_model,
 )
-from web_search import build_sources_list, build_web_context, maybe_web_search
+from local_tools import maybe_answer_local
+from web_search import (
+    build_sources_list,
+    build_web_context,
+    classify_query_intent,
+    maybe_web_search,
+    should_use_kb,
+)
 
 _SENTENCE_END_PATTERN = re.compile(r"(?<=[.!?。！？])\s*")
 
@@ -165,7 +172,18 @@ def _append_summary_if_needed(session: SessionState):
 
 
 def _build_prompt_for_session(session: SessionState, user_input: str) -> tuple[str, list[str], str]:
-    context, kb_stats = kb.retrieve_debug(user_input)
+    intent = classify_query_intent(user_input)
+    use_kb = should_use_kb(user_input)
+    if use_kb:
+        context, kb_stats = kb.retrieve_debug(user_input)
+    else:
+        context, kb_stats = "", {
+            "sections_used": 0,
+            "context_chars": 0,
+            "context_tokens_est": 0,
+            "details": [],
+        }
+
     web_results, route_reason = maybe_web_search(user_input, kb_stats)
     web_context = build_web_context(web_results)
     merged_context = context
@@ -173,11 +191,13 @@ def _build_prompt_for_session(session: SessionState, user_input: str) -> tuple[s
         merged_context += "\n\n[Web Evidence]\n" + web_context
 
     _log(
-        "KB sections=%s chars=%s tokens_est=%s"
+        "intent=%s KB sections=%s chars=%s tokens_est=%s use_kb=%s"
         % (
+            intent,
             kb_stats.get("sections_used", "?"),
             kb_stats.get("context_chars", "?"),
             kb_stats.get("context_tokens_est", "?"),
+            use_kb,
         )
     )
     if web_results:
@@ -243,6 +263,10 @@ def _generate_reply_text(session: SessionState, user_text: str) -> tuple[str, li
     emergency = check_emergency(user_text)
     if emergency:
         return emergency, [], "emergency"
+
+    local_answer, local_reason = maybe_answer_local(user_text)
+    if local_answer:
+        return local_answer, [], local_reason
 
     _append_summary_if_needed(session)
     prompt, sources, route_reason = _build_prompt_for_session(session, user_text)
