@@ -16,6 +16,7 @@ Install dependency if needed:
 
 ```powershell
 pip install websockets
+pip install aiohttp
 ```
 
 Start the server:
@@ -25,6 +26,7 @@ python ws_server.py
 ```
 
 Server prints a LAN URL such as `ws://192.168.x.x:8765` for ESP32 configuration.
+It also prints an admin dashboard URL such as `http://192.168.x.x:8766/admin`.
 
 Run local protocol tester in another terminal:
 
@@ -57,6 +59,26 @@ WebSocket options are in `config.py`:
 - `WS_MAX_UTTERANCE_SEC`
 - `WS_INPUT_SAMPLE_RATE`, `WS_INPUT_CHANNELS`, `WS_INPUT_SAMPLE_WIDTH_BYTES`
 - `WS_LOG_VERBOSE`
+
+Admin dashboard options in `config.py`:
+
+- `ADMIN_HTTP_HOST`, `ADMIN_HTTP_PORT`
+- `ADMIN_POLL_INTERVAL_MS`
+- `ADMIN_ENABLE_VERBOSE_EVENTS`
+- `MODULE_ASR_ENABLED`, `MODULE_LLM_ENABLED`, `MODULE_TTS_ENABLED`
+
+Admin endpoints:
+
+- `GET /api/admin/status`
+- `GET /api/admin/events`
+- `GET /api/admin/connections`
+- `POST /api/admin/modules`
+
+Module switch behavior:
+
+- ASR disabled: server returns `ASR_DISABLED` and skips utterance processing.
+- LLM disabled: server returns a controlled maintenance text response.
+- TTS disabled: server returns text response without audio bytes.
 
 ### Web Search (Serper)
 

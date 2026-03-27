@@ -20,22 +20,32 @@ import asyncio
 import contextlib
 import io
 import json
+import os
 import re
 import socket
 import tempfile
 import time
 import wave
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
+from aiohttp import web
 import websockets  # type: ignore[reportMissingImports]
 from websockets.exceptions import ConnectionClosed  # type: ignore[reportMissingImports]
 from websockets.server import WebSocketServerProtocol  # type: ignore[reportMissingImports]
 
 from config import (
+    ADMIN_ENABLE_VERBOSE_EVENTS,
+    ADMIN_HTTP_HOST,
+    ADMIN_HTTP_PORT,
+    ADMIN_POLL_INTERVAL_MS,
     ASSISTANT_NAME,
     MAX_CONTEXT_TURNS,
     MAX_GENERATION_TOKENS,
+    MODULE_ASR_ENABLED,
+    MODULE_LLM_ENABLED,
+    MODULE_TTS_ENABLED,
     REPEAT_PENALTY,
     TEMPERATURE,
     TOP_P,
@@ -70,6 +80,60 @@ from web_search import (
 )
 
 _SENTENCE_END_PATTERN = re.compile(r"(?<=[.!?。！？])\s*")
+_ADMIN_DIR = Path(__file__).resolve().parent / "admin"
+
+
+@dataclass
+class ModuleState:
+    asr_enabled: bool = MODULE_ASR_ENABLED
+    llm_enabled: bool = MODULE_LLM_ENABLED
+    tts_enabled: bool = MODULE_TTS_ENABLED
+
+
+@dataclass
+class RuntimeMetrics:
+    utterances_total: int = 0
+    input_audio_bytes_total: int = 0
+    output_audio_bytes_total: int = 0
+    asr_ms_avg: float = 0.0
+    llm_ms_avg: float = 0.0
+    tts_ms_avg: float = 0.0
+    total_ms_avg: float = 0.0
+
+
+@dataclass
+class ConnectionSnapshot:
+    client_id: str
+    remote_ip: str
+    remote_port: int
+    connected_at: float
+    disconnected_at: float | None = None
+    status: str = "active"
+    utterances: int = 0
+    input_audio_bytes: int = 0
+    output_audio_bytes: int = 0
+    last_asr_text: str = ""
+    last_reply_text: str = ""
+    last_route_reason: str = ""
+
+    def to_dict(self) -> dict:
+        now_ts = time.time()
+        end_ts = self.disconnected_at if self.disconnected_at else now_ts
+        return {
+            "client_id": self.client_id,
+            "remote_ip": self.remote_ip,
+            "remote_port": self.remote_port,
+            "status": self.status,
+            "connected_at": self.connected_at,
+            "disconnected_at": self.disconnected_at,
+            "duration_sec": int(max(0.0, end_ts - self.connected_at)),
+            "utterances": self.utterances,
+            "input_audio_bytes": self.input_audio_bytes,
+            "output_audio_bytes": self.output_audio_bytes,
+            "last_asr_text": self.last_asr_text,
+            "last_reply_text": self.last_reply_text,
+            "last_route_reason": self.last_route_reason,
+        }
 
 
 @dataclass
@@ -94,6 +158,18 @@ async def _send_json(ws: WebSocketServerProtocol, payload: dict):
 async def _safe_send_json(ws: WebSocketServerProtocol, payload: dict):
     with contextlib.suppress(ConnectionClosed):
         await _send_json(ws, payload)
+
+
+def _trim_text(text: str, limit: int = 240) -> str:
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3] + "..."
+
+
+def _rolling_avg(current_avg: float, count: int, new_value: int) -> float:
+    if count <= 1:
+        return float(new_value)
+    return ((current_avg * (count - 1)) + new_value) / count
 
 
 def _local_lan_ip() -> str:
@@ -302,6 +378,30 @@ def _synthesize_to_pcm16(reply_text: str) -> tuple[bytes, int]:
 
 _active_client_guard = asyncio.Lock()
 _active_client_id: str | None = None
+_metrics_guard = asyncio.Lock()
+
+_server_started_at = time.time()
+_modules = ModuleState()
+_metrics = RuntimeMetrics()
+_active_connection: ConnectionSnapshot | None = None
+_connection_history: list[dict] = []
+_event_log: list[dict] = []
+
+
+async def _record_event(event_type: str, **details):
+    if not ADMIN_ENABLE_VERBOSE_EVENTS and event_type == "debug":
+        return
+
+    async with _metrics_guard:
+        _event_log.append(
+            {
+                "ts": time.time(),
+                "type": event_type,
+                "details": details,
+            }
+        )
+        if len(_event_log) > 300:
+            del _event_log[: len(_event_log) - 300]
 
 
 async def _claim_active_client(client_id: str) -> bool:
@@ -321,6 +421,11 @@ async def _release_active_client(client_id: str):
 
 
 async def handle_client(ws: WebSocketServerProtocol):
+    global _active_connection
+
+    remote = ws.remote_address or ("unknown", 0)
+    remote_ip = str(remote[0])
+    remote_port = int(remote[1]) if len(remote) > 1 else 0
     client_id = f"{ws.remote_address}"
     claimed = await _claim_active_client(client_id)
     if not claimed:
@@ -335,12 +440,23 @@ async def handle_client(ws: WebSocketServerProtocol):
         await ws.close(code=1013, reason="Single-device mode busy")
         return
 
+    connection_start = time.time()
+    async with _metrics_guard:
+        _active_connection = ConnectionSnapshot(
+            client_id=client_id,
+            remote_ip=remote_ip,
+            remote_port=remote_port,
+            connected_at=connection_start,
+        )
+
+    await _record_event("connect", client_id=client_id, remote_ip=remote_ip, remote_port=remote_port)
     _log(f"connected: {client_id}")
     await _send_json(
         ws,
         {
             "type": "hello",
             "protocol": "esp32-ws-v1",
+            "client_id": client_id,
             "input": {
                 "encoding": "pcm16",
                 "sample_rate": WS_INPUT_SAMPLE_RATE,
@@ -360,6 +476,7 @@ async def handle_client(ws: WebSocketServerProtocol):
                 message = await asyncio.wait_for(ws.recv(), timeout=WS_IDLE_TIMEOUT_SEC)
             except (asyncio.TimeoutError, TimeoutError):
                 _log(f"idle timeout: {client_id} ({WS_IDLE_TIMEOUT_SEC}s without frames)")
+                await _record_event("idle_timeout", client_id=client_id)
                 await _safe_send_json(
                     ws,
                     {
@@ -373,7 +490,12 @@ async def handle_client(ws: WebSocketServerProtocol):
                 break
 
             if isinstance(message, bytes):
+                async with _metrics_guard:
+                    if _active_connection and _active_connection.client_id == client_id:
+                        _active_connection.input_audio_bytes += len(message)
+
                 if len(message) > WS_MAX_MESSAGE_BYTES:
+                    await _record_event("error", code="FRAME_TOO_LARGE", client_id=client_id)
                     await _send_json(
                         ws,
                         {
@@ -387,6 +509,7 @@ async def handle_client(ws: WebSocketServerProtocol):
                 buffer.extend(message)
                 if len(buffer) > max_bytes:
                     buffer.clear()
+                    await _record_event("error", code="UTTERANCE_TOO_LONG", client_id=client_id)
                     await _send_json(
                         ws,
                         {
@@ -401,6 +524,7 @@ async def handle_client(ws: WebSocketServerProtocol):
             try:
                 payload = json.loads(message)
             except json.JSONDecodeError:
+                await _record_event("error", code="BAD_JSON", client_id=client_id)
                 await _send_json(
                     ws,
                     {
@@ -420,6 +544,7 @@ async def handle_client(ws: WebSocketServerProtocol):
             if msg_type == "reset":
                 session = SessionState()
                 buffer.clear()
+                await _record_event("reset", client_id=client_id)
                 await _send_json(ws, {"type": "ok", "message": "session reset"})
                 continue
 
@@ -429,6 +554,7 @@ async def handle_client(ws: WebSocketServerProtocol):
                 continue
 
             if msg_type != "end_utterance":
+                await _record_event("error", code="UNKNOWN_TYPE", client_id=client_id, msg_type=msg_type)
                 await _send_json(
                     ws,
                     {
@@ -440,6 +566,7 @@ async def handle_client(ws: WebSocketServerProtocol):
                 continue
 
             if not buffer:
+                await _record_event("error", code="EMPTY_AUDIO", client_id=client_id)
                 await _send_json(
                     ws,
                     {
@@ -466,10 +593,24 @@ async def handle_client(ws: WebSocketServerProtocol):
             )
 
             try:
+                if not _modules.asr_enabled:
+                    await _record_event("module_block", module="asr", client_id=client_id)
+                    await _send_json(
+                        ws,
+                        {
+                            "type": "error",
+                            "utterance_id": utterance_id,
+                            "code": "ASR_DISABLED",
+                            "message": "ASR module is disabled by admin.",
+                        },
+                    )
+                    continue
+
                 asr_started = time.perf_counter()
                 asr_text = _transcribe_pcm16_bytes(pcm_bytes)
                 asr_ms = int((time.perf_counter() - asr_started) * 1000)
                 if should_ignore(asr_text):
+                    await _record_event("ignored", client_id=client_id, reason="noisy_or_short_asr")
                     await _send_json(
                         ws,
                         {
@@ -481,17 +622,60 @@ async def handle_client(ws: WebSocketServerProtocol):
                     )
                     continue
 
-                llm_started = time.perf_counter()
-                reply_text, sources, route_reason = _generate_reply_text(session, asr_text)
-                llm_ms = int((time.perf_counter() - llm_started) * 1000)
+                if _modules.llm_enabled:
+                    llm_started = time.perf_counter()
+                    reply_text, sources, route_reason = _generate_reply_text(session, asr_text)
+                    llm_ms = int((time.perf_counter() - llm_started) * 1000)
+                else:
+                    reply_text = "LLM module is currently disabled by admin."
+                    sources = []
+                    route_reason = "llm_disabled"
+                    llm_ms = 0
 
                 session.history.append(("user", asr_text))
                 session.history.append(("assistant", reply_text))
 
-                tts_started = time.perf_counter()
-                audio_bytes, sample_rate = _synthesize_to_pcm16(reply_text)
-                tts_ms = int((time.perf_counter() - tts_started) * 1000)
+                audio_disabled = not _modules.tts_enabled
+                if not audio_disabled:
+                    tts_started = time.perf_counter()
+                    audio_bytes, sample_rate = _synthesize_to_pcm16(reply_text)
+                    tts_ms = int((time.perf_counter() - tts_started) * 1000)
+                else:
+                    audio_bytes = b""
+                    sample_rate = 0
+                    tts_ms = 0
+
                 total_ms = int((time.perf_counter() - total_started) * 1000)
+
+                async with _metrics_guard:
+                    _metrics.utterances_total += 1
+                    _metrics.input_audio_bytes_total += len(pcm_bytes)
+                    _metrics.output_audio_bytes_total += len(audio_bytes)
+
+                    count = _metrics.utterances_total
+                    _metrics.asr_ms_avg = _rolling_avg(_metrics.asr_ms_avg, count, asr_ms)
+                    _metrics.llm_ms_avg = _rolling_avg(_metrics.llm_ms_avg, count, llm_ms)
+                    _metrics.tts_ms_avg = _rolling_avg(_metrics.tts_ms_avg, count, tts_ms)
+                    _metrics.total_ms_avg = _rolling_avg(_metrics.total_ms_avg, count, total_ms)
+
+                    if _active_connection and _active_connection.client_id == client_id:
+                        _active_connection.utterances += 1
+                        _active_connection.output_audio_bytes += len(audio_bytes)
+                        _active_connection.last_asr_text = _trim_text(asr_text)
+                        _active_connection.last_reply_text = _trim_text(reply_text)
+                        _active_connection.last_route_reason = route_reason
+
+                await _record_event(
+                    "utterance_done",
+                    client_id=client_id,
+                    utterance_id=utterance_id,
+                    asr_ms=asr_ms,
+                    llm_ms=llm_ms,
+                    tts_ms=tts_ms,
+                    total_ms=total_ms,
+                    route_reason=route_reason,
+                    audio_disabled=audio_disabled,
+                )
 
                 await _send_json(
                     ws,
@@ -502,9 +686,11 @@ async def handle_client(ws: WebSocketServerProtocol):
                         "reply_text": reply_text,
                         "sources": sources,
                         "web_route": route_reason,
+                        "connection_duration_sec": int(time.time() - connection_start),
                     },
                 )
-                await ws.send(audio_bytes)
+                if not audio_disabled:
+                    await ws.send(audio_bytes)
                 await _send_json(
                     ws,
                     {
@@ -514,6 +700,8 @@ async def handle_client(ws: WebSocketServerProtocol):
                         "sample_rate": sample_rate,
                         "channels": 1,
                         "bytes": len(audio_bytes),
+                        "input_bytes": len(pcm_bytes),
+                        "audio_disabled": audio_disabled,
                         "asr_ms": asr_ms,
                         "llm_ms": llm_ms,
                         "tts_ms": tts_ms,
@@ -522,6 +710,7 @@ async def handle_client(ws: WebSocketServerProtocol):
                     },
                 )
             except Exception as exc:
+                await _record_event("error", code="PROCESSING_ERROR", client_id=client_id, message=str(exc))
                 await _send_json(
                     ws,
                     {
@@ -532,12 +721,119 @@ async def handle_client(ws: WebSocketServerProtocol):
                     },
                 )
     except ConnectionClosed:
+        await _record_event("disconnect", client_id=client_id, reason="connection_closed")
         _log(f"disconnected: {client_id}")
     except asyncio.TimeoutError:
         # Defensive guard for event-loop timeout propagation from websocket internals.
+        await _record_event("disconnect", client_id=client_id, reason="connection_timeout")
         _log(f"connection timeout propagated: {client_id}")
     finally:
+        async with _metrics_guard:
+            global _active_connection
+            if _active_connection and _active_connection.client_id == client_id:
+                _active_connection.status = "disconnected"
+                _active_connection.disconnected_at = time.time()
+                _connection_history.append(_active_connection.to_dict())
+                if len(_connection_history) > 100:
+                    del _connection_history[: len(_connection_history) - 100]
+                _active_connection = None
+
         await _release_active_client(client_id)
+
+
+async def _admin_index(_request: web.Request) -> web.Response:
+    index_path = _ADMIN_DIR / "index.html"
+    if not index_path.exists():
+        return web.Response(status=404, text="admin/index.html not found")
+    return web.FileResponse(index_path)
+
+
+async def _admin_status(_request: web.Request) -> web.Response:
+    async with _metrics_guard:
+        active = _active_connection.to_dict() if _active_connection else None
+        payload = {
+            "uptime_sec": int(time.time() - _server_started_at),
+            "poll_interval_ms": ADMIN_POLL_INTERVAL_MS,
+            "active_client_count": 1 if _active_connection else 0,
+            "active_client": active,
+            "modules": {
+                "asr_enabled": _modules.asr_enabled,
+                "llm_enabled": _modules.llm_enabled,
+                "tts_enabled": _modules.tts_enabled,
+            },
+            "metrics": {
+                "utterances_total": _metrics.utterances_total,
+                "input_audio_bytes_total": _metrics.input_audio_bytes_total,
+                "output_audio_bytes_total": _metrics.output_audio_bytes_total,
+                "asr_ms_avg": round(_metrics.asr_ms_avg, 2),
+                "llm_ms_avg": round(_metrics.llm_ms_avg, 2),
+                "tts_ms_avg": round(_metrics.tts_ms_avg, 2),
+                "total_ms_avg": round(_metrics.total_ms_avg, 2),
+            },
+        }
+    return web.json_response(payload)
+
+
+async def _admin_events(request: web.Request) -> web.Response:
+    try:
+        limit = int(request.query.get("limit", "50"))
+    except ValueError:
+        limit = 50
+    limit = max(1, min(limit, 300))
+
+    async with _metrics_guard:
+        rows = list(_event_log[-limit:])
+
+    return web.json_response({"events": rows, "count": len(rows)})
+
+
+async def _admin_connections(_request: web.Request) -> web.Response:
+    async with _metrics_guard:
+        active = _active_connection.to_dict() if _active_connection else None
+        history = list(_connection_history[-50:])
+    return web.json_response({"active": active, "history": history})
+
+
+async def _admin_modules(request: web.Request) -> web.Response:
+    data = await request.json()
+    if "asr_enabled" in data:
+        _modules.asr_enabled = bool(data["asr_enabled"])
+    if "llm_enabled" in data:
+        _modules.llm_enabled = bool(data["llm_enabled"])
+    if "tts_enabled" in data:
+        _modules.tts_enabled = bool(data["tts_enabled"])
+
+    await _record_event(
+        "modules_updated",
+        asr_enabled=_modules.asr_enabled,
+        llm_enabled=_modules.llm_enabled,
+        tts_enabled=_modules.tts_enabled,
+    )
+
+    return web.json_response(
+        {
+            "ok": True,
+            "updated_at": int(time.time()),
+            "modules": {
+                "asr_enabled": _modules.asr_enabled,
+                "llm_enabled": _modules.llm_enabled,
+                "tts_enabled": _modules.tts_enabled,
+            },
+        }
+    )
+
+
+def _build_admin_app() -> web.Application:
+    app = web.Application()
+    app.router.add_get("/admin", _admin_index)
+    app.router.add_get("/api/admin/status", _admin_status)
+    app.router.add_get("/api/admin/events", _admin_events)
+    app.router.add_get("/api/admin/connections", _admin_connections)
+    app.router.add_post("/api/admin/modules", _admin_modules)
+
+    if _ADMIN_DIR.exists():
+        app.router.add_static("/admin/", str(_ADMIN_DIR), show_index=False)
+    return app
 
 
 async def main():
@@ -551,7 +847,14 @@ async def main():
         print("LAN IPs   : " + ", ".join(candidate_ips))
     print(f"Input PCM : 16-bit, {WS_INPUT_SAMPLE_RATE}Hz, mono")
     print("Mode      : single active device")
+    print(f"Admin URL : http://{lan_ip}:{ADMIN_HTTP_PORT}/admin")
     print("=" * 60)
+
+    admin_app = _build_admin_app()
+    admin_runner = web.AppRunner(admin_app)
+    await admin_runner.setup()
+    admin_site = web.TCPSite(admin_runner, ADMIN_HTTP_HOST, ADMIN_HTTP_PORT)
+    await admin_site.start()
 
     async with websockets.serve(
         handle_client,

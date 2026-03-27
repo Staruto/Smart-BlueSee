@@ -64,6 +64,16 @@ WS_INPUT_CHANNELS = 1
 WS_INPUT_SAMPLE_WIDTH_BYTES = 2   # PCM16
 WS_LOG_VERBOSE = True
 
+# ───────────────────────── Admin Dashboard ───────────────
+ADMIN_HTTP_HOST = "0.0.0.0"
+ADMIN_HTTP_PORT = 8766
+ADMIN_POLL_INTERVAL_MS = 1000
+ADMIN_ENABLE_VERBOSE_EVENTS = True
+
+MODULE_ASR_ENABLED = True
+MODULE_LLM_ENABLED = True
+MODULE_TTS_ENABLED = True
+
 # University identity
 UNIVERSITY_NAME = "University of Nottingham Ningbo China"
 UNIVERSITY_SHORT = "UNNC"

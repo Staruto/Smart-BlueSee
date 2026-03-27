@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bluesee Admin Dashboard</title>
+  <link rel="stylesheet" href="/admin/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Bluesee Admin Dashboard</h1>
+    <p id="server-meta">Loading...</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Module Controls</h2>
+      <div class="row">
+        <label><input type="checkbox" id="mod-asr" /> ASR</label>
+        <label><input type="checkbox" id="mod-llm" /> LLM</label>
+        <label><input type="checkbox" id="mod-tts" /> TTS</label>
+        <button id="save-modules">Apply</button>
+      </div>
+      <p id="module-msg"></p>
+    </section>
+
+    <section class="card">
+      <h2>Active Device</h2>
+      <pre id="active-device">-</pre>
+    </section>
+
+    <section class="card">
+      <h2>Recent Throughput</h2>
+      <pre id="stats">-</pre>
+    </section>
+
+    <section class="card">
+      <h2>Connection History</h2>
+      <pre id="connections">-</pre>
+    </section>
+
+    <section class="card">
+      <h2>Recent Events</h2>
+      <pre id="events">-</pre>
+    </section>
+  </main>
+
+  <script src="/admin/app.js"></script>
+</body>
+</html>
