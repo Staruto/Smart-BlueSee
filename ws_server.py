@@ -729,7 +729,6 @@ async def handle_client(ws: WebSocketServerProtocol):
         _log(f"connection timeout propagated: {client_id}")
     finally:
         async with _metrics_guard:
-            global _active_connection
             if _active_connection and _active_connection.client_id == client_id:
                 _active_connection.status = "disconnected"
                 _active_connection.disconnected_at = time.time()
