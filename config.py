@@ -87,8 +87,7 @@ HALLUCINATION_PHRASES = [
 # Emergency keywords — trigger immediate safety response
 EMERGENCY_KEYWORDS = [
     "suicide", "kill myself", "self-harm", "hurt myself",
-    "emergency", "fire", "help me", "i'm in danger",
-    "心理危机", "自杀", "自残", "紧急",
+    "emergency", "fire", "help me", "i'm in danger"
 ]
 
 # Knowledge retrieval — controls context budget
@@ -108,7 +107,7 @@ TFIDF_WEIGHT = 0.3                            # weight for TF-IDF score in hybri
 # Web search (optional, auto-routed)
 ENABLE_WEB_SEARCH = True
 WEB_SEARCH_PROVIDER = "serper"
-SERPER_API_KEY = "2d8699685f52053c3d4d210e8dad0889a8d6615d"  # os.getenv("SERPER_API_KEY", "")
+SERPER_API_KEY = "2d8699685f52053c3d4d210e8dad0889a8d6615d"  # os.getenv("SERPER_API_KEY", ""), no need to hide api_key
 WEB_SEARCH_MAX_RESULTS = 5
 WEB_SEARCH_TIMEOUT_SEC = 8
 WEB_SEARCH_LOCALE = "zh-CN"
