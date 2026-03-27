@@ -49,6 +49,7 @@ from config import (
     WS_MAX_MESSAGE_BYTES,
     WS_MAX_UTTERANCE_SEC,
     WS_PORT,
+    WEB_SEARCH_SOURCES_MAX,
 )
 from client_v4 import (
     check_emergency,
@@ -58,6 +59,14 @@ from client_v4 import (
     should_ignore,
     tts_engine,
     asr_model,
+)
+from local_tools import maybe_answer_local
+from web_search import (
+    build_sources_list,
+    build_web_context,
+    classify_query_intent,
+    maybe_web_search,
+    should_use_kb,
 )
 
 _SENTENCE_END_PATTERN = re.compile(r"(?<=[.!?。！？])\s*")
@@ -162,18 +171,42 @@ def _append_summary_if_needed(session: SessionState):
     del session.history[:cutoff]
 
 
-def _build_prompt_for_session(session: SessionState, user_input: str) -> str:
-    context, kb_stats = kb.retrieve_debug(user_input)
+def _build_prompt_for_session(session: SessionState, user_input: str) -> tuple[str, list[str], str]:
+    intent = classify_query_intent(user_input)
+    use_kb = should_use_kb(user_input)
+    if use_kb:
+        context, kb_stats = kb.retrieve_debug(user_input)
+    else:
+        context, kb_stats = "", {
+            "sections_used": 0,
+            "context_chars": 0,
+            "context_tokens_est": 0,
+            "details": [],
+        }
+
+    web_results, route_reason = maybe_web_search(user_input, kb_stats)
+    web_context = build_web_context(web_results)
+    merged_context = context
+    if web_context:
+        merged_context += "\n\n[Web Evidence]\n" + web_context
+
     _log(
-        "KB sections=%s chars=%s tokens_est=%s"
+        "intent=%s KB sections=%s chars=%s tokens_est=%s use_kb=%s"
         % (
+            intent,
             kb_stats.get("sections_used", "?"),
             kb_stats.get("context_chars", "?"),
             kb_stats.get("context_tokens_est", "?"),
+            use_kb,
         )
     )
+    if web_results:
+        _log(f"Web results={len(web_results)} reason={route_reason}")
+    else:
+        _log(f"Web skipped reason={route_reason}")
 
-    system_prompt = get_system_prompt(context)
+    system_prompt = get_system_prompt(merged_context, has_web_context=bool(web_context))
+    sources = build_sources_list(web_results, WEB_SEARCH_SOURCES_MAX)
     history_block = ""
 
     if session.summary:
@@ -191,7 +224,7 @@ def _build_prompt_for_session(session: SessionState, user_input: str) -> str:
             "<|eot_id|>\n"
         )
 
-    return (
+    prompt = (
         system_prompt
         + history_block
         + "<|start_header_id|>user<|end_header_id|>\n"
@@ -199,6 +232,7 @@ def _build_prompt_for_session(session: SessionState, user_input: str) -> str:
         + "\n<|eot_id|>\n"
         + "<|start_header_id|>assistant<|end_header_id|>\n"
     )
+    return prompt, sources, route_reason
 
 
 def _transcribe_pcm16_bytes(pcm_bytes: bytes) -> str:
@@ -225,13 +259,17 @@ def _transcribe_pcm16_bytes(pcm_bytes: bytes) -> str:
             os.remove(wav_path)
 
 
-def _generate_reply_text(session: SessionState, user_text: str) -> str:
+def _generate_reply_text(session: SessionState, user_text: str) -> tuple[str, list[str], str]:
     emergency = check_emergency(user_text)
     if emergency:
-        return emergency
+        return emergency, [], "emergency"
+
+    local_answer, local_reason = maybe_answer_local(user_text)
+    if local_answer:
+        return local_answer, [], local_reason
 
     _append_summary_if_needed(session)
-    prompt = _build_prompt_for_session(session, user_text)
+    prompt, sources, route_reason = _build_prompt_for_session(session, user_text)
 
     stream = llm(
         prompt,
@@ -249,7 +287,7 @@ def _generate_reply_text(session: SessionState, user_text: str) -> str:
         full.append(token)
 
     response = "".join(full).strip()
-    return response
+    return response, sources, route_reason
 
 
 def _synthesize_to_pcm16(reply_text: str) -> tuple[bytes, int]:
@@ -444,7 +482,7 @@ async def handle_client(ws: WebSocketServerProtocol):
                     continue
 
                 llm_started = time.perf_counter()
-                reply_text = _generate_reply_text(session, asr_text)
+                reply_text, sources, route_reason = _generate_reply_text(session, asr_text)
                 llm_ms = int((time.perf_counter() - llm_started) * 1000)
 
                 session.history.append(("user", asr_text))
@@ -462,6 +500,8 @@ async def handle_client(ws: WebSocketServerProtocol):
                         "utterance_id": utterance_id,
                         "asr_text": asr_text,
                         "reply_text": reply_text,
+                        "sources": sources,
+                        "web_route": route_reason,
                     },
                 )
                 await ws.send(audio_bytes)
