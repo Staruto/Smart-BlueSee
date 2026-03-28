@@ -1,18 +1,17 @@
 [Faculty of Science and Engineering (FoSE)]
-Dean's Office: Science and Engineering Building (SEB).
+Dean's Office: Peter Mansfield Building (PMB).
 The Faculty of Science and Engineering offers programs in:
 Undergraduate (BEng / BSc):
   - BEng Aerospace Engineering — aerodynamics, propulsion, flight mechanics, aerospace structures.
   - BEng Architectural Environment Engineering — building services, HVAC, energy-efficient building design.
   - BEng Architecture — architectural design, urban planning, sustainability, building technology.
+  - BSc Computer Science — algorithms, software engineering.
   - BSc Computer Science with Artificial Intelligence — algorithms, software engineering, AI, machine learning, neural networks, NLP. Very popular program.
   - BEng Civil Engineering — structural engineering, geotechnics, construction management.
   - BEng Electrical and Electronic Engineering — circuits, signals, embedded systems, power engineering.
   - BSc Mathematics with Applied Mathematics — pure and applied mathematics, statistics, mathematical modelling.
   - BEng Mechanical Engineering — thermodynamics, mechanics, design, manufacturing.
-NEW Programs (starting September 2026):
-  - BSc Big Data Management and Applications — NEW, first cohort 2026. Covers data analytics, data governance, and data-driven decision making.
-Note: UNNC previously offered standalone BSc Computer Science. As of current listings, the undergraduate CS program is BSc Computer Science with Artificial Intelligence.
+  - BEng Chemical Engineering — Chemistry...
 Postgraduate (MSc / PhD):
   - MSc Computer Science
   - MSc Data Science — big data analytics, machine learning, data visualization.
@@ -23,7 +22,7 @@ Postgraduate (MSc / PhD):
 Note: All FoSE programs are taught in English and lead to University of Nottingham (UK) degrees.
 School Offices: Each department has a School Office for academic queries, module enrollment issues, and extenuating circumstances claims.
 
-[Faculty of Humanities and Social Sciences (FoHSS)]
+[Faculty of Humanities and Social Sciences (FHSS)]
 Dean's Office: Trent Building.
 Programs offered:
 Undergraduate (BA / BSc):
@@ -45,7 +44,7 @@ Postgraduate:
   - PhD programs in education, English, psychology, international studies.
 Language Centre (CELE): Centre for English Language Education — offers Chinese language courses for international students and English academic support for all students.
 
-[Nottingham University Business School (NBS)]
+[Nottingham University Business School (NUBS)]
 Also known as NUBS China. Dean's Office: Sir Peter Mansfield Building.
 Programs offered:
 Undergraduate (BSc / BA):
@@ -65,12 +64,12 @@ Accreditation: NBS holds triple accreditation (EQUIS, AMBA, AACSB) — one of ve
 Career support: Dedicated Career Development team within NBS. Regular company presentations, job fairs, and internship placements.
 
 [Academic Departments & Contacts]
-Department of Computer Science: SEB Building. Head of Department office: SEB 4th floor. Email: cs-enquiries@nottingham.edu.cn
-Department of Mechanical, Materials and Manufacturing Engineering: SEB Building.
-Department of Civil Engineering: SEB Building.
-Department of Electrical and Electronic Engineering: SEB Building.
-Department of Mathematical Sciences: SEB Building.
-Department of Chemical and Environmental Engineering: SEB Building.
+Department of Computer Science: PMB Building. Head of Department office: PMB 4th floor. Email: cs-enquiries@nottingham.edu.cn
+Department of Mechanical, Materials and Manufacturing Engineering: PMB Building.
+Department of Civil Engineering: PMB Building.
+Department of Electrical and Electronic Engineering: PMB Building.
+Department of Mathematical Sciences: PMB Building.
+Department of Chemical and Environmental Engineering: PMB Building.
 School of English: Trent Building. Email: english-enquiries@nottingham.edu.cn
 School of Education: Trent Building.
 School of International Communications: Trent Building.
