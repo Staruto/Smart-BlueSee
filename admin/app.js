@@ -1,7 +1,9 @@
 const byId = (id) => document.getElementById(id);
+const byIdAny = (...ids) => ids.map((id) => byId(id)).find(Boolean) || null;
 
 const elems = {
   serverMeta: byId("server-meta"),
+  frontendMeta: byId("frontend-meta"),
   asr: byId("mod-asr"),
   llm: byId("mod-llm"),
   tts: byId("mod-tts"),
@@ -16,12 +18,12 @@ const elems = {
   fallbackText: byId("fallback-text"),
   fallbackSend: byId("send-fallback"),
   fallbackMsg: byId("fallback-msg"),
-  eventSeverity: byId("event-severity"),
-  connectionsSummary: byId("connections-summary"),
-  activeDeviceRaw: byId("active-device-raw"),
-  statsRaw: byId("stats-raw"),
-  connectionsRaw: byId("connections-raw"),
-  events: byId("events"),
+  eventSeverity: byIdAny("event-severity"),
+  connectionsSummary: byIdAny("connections-summary", "connections"),
+  activeDeviceRaw: byIdAny("active-device-raw", "active-device"),
+  statsRaw: byIdAny("stats-raw", "stats"),
+  connectionsRaw: byIdAny("connections-raw", "connections"),
+  events: byIdAny("events"),
 };
 
 let pollIntervalMs = 1000;
@@ -49,7 +51,7 @@ async function loadStatus() {
 }
 
 async function loadEvents() {
-  const sev = encodeURIComponent(elems.eventSeverity.value || "error,warning");
+  const sev = encodeURIComponent((elems.eventSeverity && elems.eventSeverity.value) || "error,warning");
   const resp = await fetch(`/api/admin/events?limit=30&severity=${sev}`);
   if (!resp.ok) throw new Error("Failed to load events");
   return await resp.json();
@@ -91,7 +93,7 @@ async function sendFallbackText() {
     return;
   }
 
-  elems.fallbackMsg.textContent = "Sending...";
+  if (elems.fallbackMsg) elems.fallbackMsg.textContent = "Sending...";
   const resp = await fetch("/api/admin/send-text", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -100,11 +102,11 @@ async function sendFallbackText() {
 
   const data = await resp.json();
   if (!resp.ok || !data.ok) {
-    elems.fallbackMsg.textContent = `${data.code || "FAILED"}: ${data.message || "send failed"}`;
+    if (elems.fallbackMsg) elems.fallbackMsg.textContent = `${data.code || "FAILED"}: ${data.message || "send failed"}`;
     return;
   }
 
-  elems.fallbackMsg.textContent = `Sent (${data.bytes} bytes), id=${data.message_id}`;
+  if (elems.fallbackMsg) elems.fallbackMsg.textContent = `Sent (${data.bytes} bytes), id=${data.message_id}`;
   elems.fallbackText.value = "";
 }
 
@@ -135,37 +137,49 @@ async function tick() {
     ]);
 
     pollIntervalMs = Number(status.poll_interval_ms || 1000);
-    elems.serverMeta.textContent = `Server uptime: ${status.uptime_sec}s | Active client: ${status.active_client_count} | Processing: ${status.processing ? "yes" : "no"}`;
+    if (elems.serverMeta) {
+      elems.serverMeta.textContent = `Server uptime: ${status.uptime_sec}s | Active client: ${status.active_client_count} | Processing: ${status.processing ? "yes" : "no"}`;
+    }
+    if (elems.frontendMeta) {
+      const s = status.server || {};
+      elems.frontendMeta.textContent = `Server PID ${s.pid || "?"} | WS ${s.ws_host || "?"}:${s.ws_port || "?"} | Admin ${s.admin_host || "?"}:${s.admin_port || "?"}`;
+    }
 
-    elems.asr.checked = !!status.modules.asr_enabled;
-    elems.llm.checked = !!status.modules.llm_enabled;
-    elems.tts.checked = !!status.modules.tts_enabled;
+    if (elems.asr) elems.asr.checked = !!status.modules.asr_enabled;
+    if (elems.llm) elems.llm.checked = !!status.modules.llm_enabled;
+    if (elems.tts) elems.tts.checked = !!status.modules.tts_enabled;
 
     const summary = status.active_client_summary || null;
-    elems.sumDevice.textContent = summary ? summary.remote : "offline";
-    elems.sumDuration.textContent = summary ? fmtDuration(summary.duration_sec) : "-";
-    elems.sumUtterances.textContent = summary ? String(summary.utterances) : "-";
-    elems.sumLatency.textContent = `${status.metrics.total_ms_avg || 0} ms`;
-    elems.sumTraffic.textContent = `${fmtBytes(status.metrics.input_audio_bytes_total || 0)} / ${fmtBytes(status.metrics.output_audio_bytes_total || 0)}`;
-    elems.sumError.textContent = status.latest_error ? (status.latest_error.details?.code || status.latest_error.type) : "none";
+    if (elems.sumDevice) elems.sumDevice.textContent = summary ? summary.remote : (status.active_client_id || "offline");
+    if (elems.sumDuration) elems.sumDuration.textContent = summary ? fmtDuration(summary.duration_sec) : "-";
+    if (elems.sumUtterances) elems.sumUtterances.textContent = summary ? String(summary.utterances) : "-";
+    if (elems.sumLatency) elems.sumLatency.textContent = `${status.metrics.total_ms_avg || 0} ms`;
+    if (elems.sumTraffic) elems.sumTraffic.textContent = `${fmtBytes(status.metrics.input_audio_bytes_total || 0)} / ${fmtBytes(status.metrics.output_audio_bytes_total || 0)}`;
+    if (elems.sumError) elems.sumError.textContent = status.latest_error ? ((status.latest_error.details && status.latest_error.details.code) || status.latest_error.type) : "none";
 
-    elems.connectionsSummary.textContent = renderConnectionsSummary(connections);
+    if (elems.connectionsSummary) elems.connectionsSummary.textContent = renderConnectionsSummary(connections);
 
-    elems.activeDeviceRaw.textContent = fmtJson(status.active_client || null);
-    elems.statsRaw.textContent = fmtJson(status.metrics || {});
-    elems.connectionsRaw.textContent = fmtJson(connections || {});
-    elems.events.textContent = fmtJson(events);
+    if (elems.activeDeviceRaw) elems.activeDeviceRaw.textContent = fmtJson(status.active_client || null);
+    if (elems.statsRaw) elems.statsRaw.textContent = fmtJson(status.metrics || {});
+    if (elems.connectionsRaw) elems.connectionsRaw.textContent = fmtJson(connections || {});
+    if (elems.events) elems.events.textContent = fmtJson(events);
   } catch (err) {
-    elems.serverMeta.textContent = `Dashboard error: ${err.message}`;
+    if (elems.serverMeta) elems.serverMeta.textContent = `Dashboard error: ${err.message}`;
   } finally {
     setTimeout(tick, pollIntervalMs);
   }
 }
 
-elems.saveModules.addEventListener("click", applyModules);
-elems.fallbackSend.addEventListener("click", sendFallbackText);
-elems.eventSeverity.addEventListener("change", () => {
-  // Trigger faster refresh after severity changes.
-  setTimeout(tick, 10);
-});
+if (elems.saveModules) elems.saveModules.addEventListener("click", applyModules);
+if (elems.fallbackSend) elems.fallbackSend.addEventListener("click", sendFallbackText);
+if (elems.eventSeverity) {
+  elems.eventSeverity.addEventListener("change", () => {
+    setTimeout(tick, 10);
+  });
+}
+
+if (elems.frontendMeta) {
+  elems.frontendMeta.textContent = "Frontend app.js loaded (v2).";
+}
+
 tick();

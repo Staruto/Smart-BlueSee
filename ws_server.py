@@ -793,6 +793,7 @@ async def _admin_index(_request: web.Request) -> web.Response:
 
 async def _admin_status(_request: web.Request) -> web.Response:
     async with _metrics_guard:
+        active_client_id = _active_client_id
         active = _active_connection.to_dict() if _active_connection else None
         active_summary = None
         if active:
@@ -805,6 +806,16 @@ async def _admin_status(_request: web.Request) -> web.Response:
                 "output_mib": _format_mib(active["output_audio_bytes"]),
                 "last_route_reason": active["last_route_reason"],
             }
+        elif active_client_id:
+            active_summary = {
+                "remote": str(active_client_id),
+                "status": "connected",
+                "duration_sec": 0,
+                "utterances": 0,
+                "input_mib": 0.0,
+                "output_mib": 0.0,
+                "last_route_reason": "",
+            }
 
         latest_error = None
         for evt in reversed(_event_log):
@@ -815,11 +826,19 @@ async def _admin_status(_request: web.Request) -> web.Response:
         payload = {
             "uptime_sec": int(time.time() - _server_started_at),
             "poll_interval_ms": ADMIN_POLL_INTERVAL_MS,
-            "active_client_count": 1 if _active_connection else 0,
+            "active_client_count": 1 if (_active_connection or active_client_id) else 0,
+            "active_client_id": active_client_id,
             "active_client": active,
             "active_client_summary": active_summary,
             "latest_error": latest_error,
             "processing": _active_processing,
+            "server": {
+                "pid": os.getpid(),
+                "ws_host": WS_HOST,
+                "ws_port": WS_PORT,
+                "admin_host": ADMIN_HTTP_HOST,
+                "admin_port": ADMIN_HTTP_PORT,
+            },
             "modules": {
                 "asr_enabled": _modules.asr_enabled,
                 "llm_enabled": _modules.llm_enabled,
