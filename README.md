@@ -93,6 +93,13 @@ Admin text fallback behavior:
 - The pushed text is recorded into active session history as an admin broadcast.
 - Common error codes: `NO_ACTIVE_CLIENT`, `EMPTY_TEXT`, `TTS_DISABLED`, `CLIENT_BUSY`.
 
+Common integration issues:
+
+- `ADMIN_TTS_ERROR: Model is multi-speaker but no speaker is provided`:
+	The server now uses configured `TTS_SPEAKER` when synthesizing admin fallback text.
+- `UTTERANCE_TOO_LONG`:
+	This means buffered input audio exceeded `WS_MAX_UTTERANCE_SEC` limit. The error message includes current/max bytes to help MCU-side tuning.
+
 Manual fallback test script:
 
 ```powershell
