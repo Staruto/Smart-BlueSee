@@ -25,23 +25,52 @@
     </section>
 
     <section class="card">
-      <h2>Active Device</h2>
-      <pre id="active-device">-</pre>
+      <h2>Live Summary</h2>
+      <div class="kv"><span>Active Device</span><strong id="sum-device">-</strong></div>
+      <div class="kv"><span>Connection Time</span><strong id="sum-duration">-</strong></div>
+      <div class="kv"><span>Utterances</span><strong id="sum-utterances">-</strong></div>
+      <div class="kv"><span>Latency Avg</span><strong id="sum-latency">-</strong></div>
+      <div class="kv"><span>Traffic In/Out</span><strong id="sum-traffic">-</strong></div>
+      <div class="kv"><span>Last Error</span><strong id="sum-error">none</strong></div>
     </section>
 
     <section class="card">
-      <h2>Recent Throughput</h2>
-      <pre id="stats">-</pre>
+      <h2>Fallback Text to Device</h2>
+      <textarea id="fallback-text" rows="3" placeholder="Type text to synthesize and push to connected ESP32..."></textarea>
+      <div class="row">
+        <button id="send-fallback">Send TTS</button>
+        <span id="fallback-msg"></span>
+      </div>
     </section>
 
     <section class="card">
-      <h2>Connection History</h2>
-      <pre id="connections">-</pre>
+      <h2>Recent Connections</h2>
+      <pre id="connections-summary">-</pre>
     </section>
 
     <section class="card">
       <h2>Recent Events</h2>
+      <div class="row">
+        <label for="event-severity">Severity</label>
+        <select id="event-severity">
+          <option value="error,warning" selected>Error + Warning</option>
+          <option value="info,error,warning">Info + Error + Warning</option>
+          <option value="debug,info,error,warning">All</option>
+        </select>
+      </div>
       <pre id="events">-</pre>
+    </section>
+
+    <section class="card full-width">
+      <details>
+        <summary>Detailed JSON</summary>
+        <h3>Active Connection Raw</h3>
+        <pre id="active-device-raw">-</pre>
+        <h3>Metrics Raw</h3>
+        <pre id="stats-raw">-</pre>
+        <h3>Connections Raw</h3>
+        <pre id="connections-raw">-</pre>
+      </details>
     </section>
   </main>
 

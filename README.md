@@ -73,12 +73,31 @@ Admin endpoints:
 - `GET /api/admin/events`
 - `GET /api/admin/connections`
 - `POST /api/admin/modules`
+- `POST /api/admin/send-text`
+
+Dashboard behavior (simplified default view):
+
+- Shows key live summary fields only (active device, duration, latency, traffic, last error).
+- Detailed raw JSON is available in a collapsible "Detailed JSON" section.
+- Event panel defaults to `error + warning` and supports severity filtering.
 
 Module switch behavior:
 
 - ASR disabled: server returns `ASR_DISABLED` and skips utterance processing.
 - LLM disabled: server returns a controlled maintenance text response.
 - TTS disabled: server returns text response without audio bytes.
+
+Admin text fallback behavior:
+
+- `POST /api/admin/send-text` synthesizes provided text and pushes audio to the active ESP32 client.
+- The pushed text is recorded into active session history as an admin broadcast.
+- Common error codes: `NO_ACTIVE_CLIENT`, `EMPTY_TEXT`, `TTS_DISABLED`, `CLIENT_BUSY`.
+
+Manual fallback test script:
+
+```powershell
+python tests/test_admin_fallback.py --ws-url ws://127.0.0.1:8765 --admin-base http://127.0.0.1:8766
+```
 
 ### Web Search (Serper)
 

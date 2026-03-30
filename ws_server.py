@@ -93,6 +93,7 @@ class ModuleState:
 @dataclass
 class RuntimeMetrics:
     utterances_total: int = 0
+    admin_tts_push_total: int = 0
     input_audio_bytes_total: int = 0
     output_audio_bytes_total: int = 0
     asr_ms_avg: float = 0.0
@@ -384,8 +385,12 @@ _server_started_at = time.time()
 _modules = ModuleState()
 _metrics = RuntimeMetrics()
 _active_connection: ConnectionSnapshot | None = None
+_active_ws: WebSocketServerProtocol | None = None
+_active_session: SessionState | None = None
+_active_processing = False
 _connection_history: list[dict] = []
 _event_log: list[dict] = []
+_admin_message_counter = 0
 
 
 async def _record_event(event_type: str, **details):
@@ -402,6 +407,32 @@ async def _record_event(event_type: str, **details):
         )
         if len(_event_log) > 300:
             del _event_log[: len(_event_log) - 300]
+
+
+def _event_severity(event_type: str) -> str:
+    if event_type in {
+        "error",
+        "idle_timeout",
+    }:
+        return "error"
+    if event_type in {
+        "module_block",
+        "ignored",
+    }:
+        return "warning"
+    if event_type == "debug":
+        return "debug"
+    return "info"
+
+
+def _next_admin_message_id() -> str:
+    global _admin_message_counter
+    _admin_message_counter += 1
+    return f"admin_{int(time.time() * 1000)}_{_admin_message_counter}"
+
+
+def _format_mib(byte_count: int) -> float:
+    return round(byte_count / (1024 * 1024), 2)
 
 
 async def _claim_active_client(client_id: str) -> bool:
@@ -421,7 +452,7 @@ async def _release_active_client(client_id: str):
 
 
 async def handle_client(ws: WebSocketServerProtocol):
-    global _active_connection
+    global _active_connection, _active_session, _active_ws, _active_processing
 
     remote = ws.remote_address or ("unknown", 0)
     remote_ip = str(remote[0])
@@ -466,6 +497,10 @@ async def handle_client(ws: WebSocketServerProtocol):
     )
 
     session = SessionState()
+    async with _metrics_guard:
+        _active_session = session
+        _active_ws = ws
+
     buffer = bytearray()
     max_bytes = _max_utterance_bytes()
     utterance_id = 0
@@ -581,6 +616,9 @@ async def handle_client(ws: WebSocketServerProtocol):
             buffer.clear()
             utterance_id += 1
             total_started = time.perf_counter()
+
+            async with _metrics_guard:
+                _active_processing = True
 
             await _send_json(
                 ws,
@@ -720,6 +758,9 @@ async def handle_client(ws: WebSocketServerProtocol):
                         "message": str(exc),
                     },
                 )
+            finally:
+                async with _metrics_guard:
+                    _active_processing = False
     except ConnectionClosed:
         await _record_event("disconnect", client_id=client_id, reason="connection_closed")
         _log(f"disconnected: {client_id}")
@@ -736,6 +777,9 @@ async def handle_client(ws: WebSocketServerProtocol):
                 if len(_connection_history) > 100:
                     del _connection_history[: len(_connection_history) - 100]
                 _active_connection = None
+            _active_session = None
+            _active_ws = None
+            _active_processing = False
 
         await _release_active_client(client_id)
 
@@ -750,11 +794,32 @@ async def _admin_index(_request: web.Request) -> web.Response:
 async def _admin_status(_request: web.Request) -> web.Response:
     async with _metrics_guard:
         active = _active_connection.to_dict() if _active_connection else None
+        active_summary = None
+        if active:
+            active_summary = {
+                "remote": f"{active['remote_ip']}:{active['remote_port']}",
+                "status": active["status"],
+                "duration_sec": active["duration_sec"],
+                "utterances": active["utterances"],
+                "input_mib": _format_mib(active["input_audio_bytes"]),
+                "output_mib": _format_mib(active["output_audio_bytes"]),
+                "last_route_reason": active["last_route_reason"],
+            }
+
+        latest_error = None
+        for evt in reversed(_event_log):
+            if _event_severity(evt["type"]) == "error":
+                latest_error = evt
+                break
+
         payload = {
             "uptime_sec": int(time.time() - _server_started_at),
             "poll_interval_ms": ADMIN_POLL_INTERVAL_MS,
             "active_client_count": 1 if _active_connection else 0,
             "active_client": active,
+            "active_client_summary": active_summary,
+            "latest_error": latest_error,
+            "processing": _active_processing,
             "modules": {
                 "asr_enabled": _modules.asr_enabled,
                 "llm_enabled": _modules.llm_enabled,
@@ -762,6 +827,7 @@ async def _admin_status(_request: web.Request) -> web.Response:
             },
             "metrics": {
                 "utterances_total": _metrics.utterances_total,
+                "admin_tts_push_total": _metrics.admin_tts_push_total,
                 "input_audio_bytes_total": _metrics.input_audio_bytes_total,
                 "output_audio_bytes_total": _metrics.output_audio_bytes_total,
                 "asr_ms_avg": round(_metrics.asr_ms_avg, 2),
@@ -780,8 +846,26 @@ async def _admin_events(request: web.Request) -> web.Response:
         limit = 50
     limit = max(1, min(limit, 300))
 
+    severity_filter_raw = request.query.get("severity", "error,warning")
+    severity_filter = {
+        part.strip()
+        for part in severity_filter_raw.split(",")
+        if part.strip() in {"debug", "info", "warning", "error"}
+    }
+    if not severity_filter:
+        severity_filter = {"error", "warning"}
+
     async with _metrics_guard:
-        rows = list(_event_log[-limit:])
+        rows = []
+        for evt in reversed(_event_log):
+            sev = _event_severity(evt["type"])
+            if sev in severity_filter:
+                row = dict(evt)
+                row["severity"] = sev
+                rows.append(row)
+            if len(rows) >= limit:
+                break
+        rows.reverse()
 
     return web.json_response({"events": rows, "count": len(rows)})
 
@@ -822,6 +906,137 @@ async def _admin_modules(request: web.Request) -> web.Response:
     )
 
 
+async def _admin_send_text(request: web.Request) -> web.Response:
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response(
+            {"ok": False, "code": "BAD_JSON", "message": "Request body must be valid JSON."},
+            status=400,
+        )
+
+    text = str(data.get("text", "")).strip()
+    if not text:
+        return web.json_response(
+            {"ok": False, "code": "EMPTY_TEXT", "message": "Text payload is empty."},
+            status=400,
+        )
+
+    async with _metrics_guard:
+        ws = _active_ws
+        session = _active_session
+        connection = _active_connection
+        processing = _active_processing
+        tts_enabled = _modules.tts_enabled
+
+    if not ws or not connection:
+        return web.json_response(
+            {"ok": False, "code": "NO_ACTIVE_CLIENT", "message": "No active device connection."},
+            status=409,
+        )
+
+    if processing:
+        return web.json_response(
+            {"ok": False, "code": "CLIENT_BUSY", "message": "Client is processing an utterance."},
+            status=409,
+        )
+
+    if not tts_enabled:
+        return web.json_response(
+            {"ok": False, "code": "TTS_DISABLED", "message": "TTS module is disabled by admin."},
+            status=409,
+        )
+
+    try:
+        audio_bytes, sample_rate = _synthesize_to_pcm16(text)
+    except Exception as exc:
+        await _record_event("error", code="ADMIN_TTS_ERROR", message=str(exc))
+        return web.json_response(
+            {"ok": False, "code": "ADMIN_TTS_ERROR", "message": str(exc)},
+            status=500,
+        )
+
+    message_id = _next_admin_message_id()
+    try:
+        await _send_json(
+            ws,
+            {
+                "type": "state",
+                "state": "admin_tts",
+                "message_id": message_id,
+                "source": "admin_text",
+            },
+        )
+        await _send_json(
+            ws,
+            {
+                "type": "text",
+                "utterance_id": 0,
+                "asr_text": "",
+                "reply_text": text,
+                "sources": [],
+                "web_route": "admin_text",
+                "source": "admin_text",
+                "message_id": message_id,
+            },
+        )
+        await ws.send(audio_bytes)
+        await _send_json(
+            ws,
+            {
+                "type": "done",
+                "utterance_id": 0,
+                "encoding": "pcm16",
+                "sample_rate": sample_rate,
+                "channels": 1,
+                "bytes": len(audio_bytes),
+                "input_bytes": 0,
+                "audio_disabled": False,
+                "asr_ms": 0,
+                "llm_ms": 0,
+                "tts_ms": 0,
+                "total_ms": 0,
+                "assistant": ASSISTANT_NAME,
+                "source": "admin_text",
+                "message_id": message_id,
+            },
+        )
+    except Exception as exc:
+        await _record_event("error", code="ADMIN_SEND_FAILED", message=str(exc))
+        return web.json_response(
+            {"ok": False, "code": "ADMIN_SEND_FAILED", "message": str(exc)},
+            status=500,
+        )
+
+    async with _metrics_guard:
+        _metrics.admin_tts_push_total += 1
+        _metrics.output_audio_bytes_total += len(audio_bytes)
+        if _active_connection and _active_connection.client_id == connection.client_id:
+            _active_connection.output_audio_bytes += len(audio_bytes)
+            _active_connection.last_reply_text = _trim_text(text)
+            _active_connection.last_route_reason = "admin_text"
+        if session is not None:
+            session.history.append(("assistant", f"[Admin Broadcast] {text}"))
+
+    await _record_event(
+        "admin_text_sent",
+        message_id=message_id,
+        client_id=connection.client_id,
+        text_preview=_trim_text(text, 120),
+        output_bytes=len(audio_bytes),
+    )
+
+    return web.json_response(
+        {
+            "ok": True,
+            "message_id": message_id,
+            "bytes": len(audio_bytes),
+            "sample_rate": sample_rate,
+            "updated_at": int(time.time()),
+        }
+    )
+
+
 def _build_admin_app() -> web.Application:
     app = web.Application()
     app.router.add_get("/admin", _admin_index)
@@ -829,6 +1044,7 @@ def _build_admin_app() -> web.Application:
     app.router.add_get("/api/admin/events", _admin_events)
     app.router.add_get("/api/admin/connections", _admin_connections)
     app.router.add_post("/api/admin/modules", _admin_modules)
+    app.router.add_post("/api/admin/send-text", _admin_send_text)
 
     if _ADMIN_DIR.exists():
         app.router.add_static("/admin/", str(_ADMIN_DIR), show_index=False)

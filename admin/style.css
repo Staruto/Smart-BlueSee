@@ -32,6 +32,10 @@ main {
   padding: 16px 24px 24px;
 }
 
+.full-width {
+  grid-column: 1 / -1;
+}
+
 .card {
   background: var(--card);
   border: 1px solid var(--line);
@@ -47,6 +51,17 @@ main {
   flex-wrap: wrap;
 }
 
+.kv {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed var(--line);
+  padding: 6px 0;
+}
+
+.kv span {
+  color: var(--muted);
+}
+
 button {
   border: none;
   background: var(--accent);
@@ -54,6 +69,22 @@ button {
   border-radius: 8px;
   padding: 8px 12px;
   cursor: pointer;
+}
+
+textarea,
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  color: var(--text);
+  background: #fff;
+}
+
+details summary {
+  cursor: pointer;
+  color: var(--accent);
+  margin-bottom: 10px;
 }
 
 pre {
@@ -65,5 +96,9 @@ pre {
 }
 
 #server-meta, #module-msg {
+  color: var(--muted);
+}
+
+#fallback-msg {
   color: var(--muted);
 }
