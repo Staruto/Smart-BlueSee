@@ -48,6 +48,7 @@ from config import (
     MODULE_TTS_ENABLED,
     REPEAT_PENALTY,
     TEMPERATURE,
+    TTS_SPEAKER,
     TOP_P,
     WHISPER_LANGUAGE,
     WS_HOST,
@@ -369,7 +370,11 @@ def _generate_reply_text(session: SessionState, user_text: str) -> tuple[str, li
 
 def _synthesize_to_pcm16(reply_text: str) -> tuple[bytes, int]:
     with contextlib.redirect_stdout(io.StringIO()):
-        wav = tts_engine.tts(text=reply_text)
+        try:
+            wav = tts_engine.tts(text=reply_text, speaker=TTS_SPEAKER)
+        except Exception:
+            # Fallback for single-speaker models or model-specific speaker behavior.
+            wav = tts_engine.tts(text=reply_text)
 
     wav_np = np.array(wav, dtype=np.float32)
     audio_int16 = (wav_np * 32767).clip(-32768, 32767).astype(np.int16)
@@ -543,14 +548,26 @@ async def handle_client(ws: WebSocketServerProtocol):
 
                 buffer.extend(message)
                 if len(buffer) > max_bytes:
+                    current_bytes = len(buffer)
                     buffer.clear()
-                    await _record_event("error", code="UTTERANCE_TOO_LONG", client_id=client_id)
+                    await _record_event(
+                        "error",
+                        code="UTTERANCE_TOO_LONG",
+                        client_id=client_id,
+                        current_bytes=current_bytes,
+                        max_bytes=max_bytes,
+                        max_utterance_sec=WS_MAX_UTTERANCE_SEC,
+                    )
                     await _send_json(
                         ws,
                         {
                             "type": "error",
                             "code": "UTTERANCE_TOO_LONG",
-                            "message": "Buffered audio exceeds WS_MAX_UTTERANCE_SEC.",
+                            "message": (
+                                "Buffered audio exceeded utterance limit: "
+                                f"{current_bytes} > {max_bytes} bytes "
+                                f"(WS_MAX_UTTERANCE_SEC={WS_MAX_UTTERANCE_SEC})."
+                            ),
                         },
                     )
                     continue
